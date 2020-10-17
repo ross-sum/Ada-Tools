@@ -22,6 +22,6 @@ Packages in this group are:
 - set_of.ads,
 - string_functions,
 - string_conversions,
-- tui_constants (Package library only, no body),
+- tui_constants (Text User Interface Package library header only, no body),
 - wide_string_maps,
 - xml_primitives
