@@ -24,4 +24,4 @@ Packages in this group are:
 - string_conversions,
 - tui_constants (Package library only, no body),
 - wide_string_maps,
-- xml_primitives"
+- xml_primitives
