@@ -5,6 +5,7 @@ This does not include the dStrings set of packages.
 
 Packages in this group are:
 - additional_socket_io,
+- blobs, blobs-base_64,
 - calendar_extensions,
 - config_file_manager, config_file_manager-file_access,
 - error_log,
