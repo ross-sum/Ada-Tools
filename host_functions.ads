@@ -41,6 +41,11 @@ package Host_Functions is
 
    function Host_Name return Wide_String;
     --  Return the name of the current host
+    
+   function Get_Environment_Value(for_variable : wide_string)
+    return wide_string;
+    -- Return the environemnt variable value for the specified
+    -- environment variable.
 
    procedure Execute(app_name : wide_string; args : wide_string;
    envs : wide_string := "");
