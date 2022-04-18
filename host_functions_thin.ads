@@ -33,7 +33,7 @@
 with Interfaces.C.Pointers;
 with Interfaces.C.Strings;
 with System;
-
+-- stdlib.h
 package Host_Functions_Thin is
 
    package C renames Interfaces.C;
@@ -96,6 +96,13 @@ package Host_Functions_Thin is
    -- the child's process, whereas the child process gets a return
    -- value of 0 (no process ID, since it is the child).
 
+   function C_GetEnv(env : Strings.chars_ptr) return Strings.chars_ptr;
+   -- return the environment varlable string for the
+   -- specified environment variable.
+   -- Follows from: char *getenv(const char *name);
+   -- This returns a pointer to the environment variable if it is found,
+   -- otherwise it returns a null pointer.
+
 private
 
 pragma Import (C, C_Gethostname, "gethostname");
@@ -103,5 +110,6 @@ pragma Import (C, C_Execve,      "execve");
 pragma Import (C, C_Execvp,      "execvp");
 pragma Import (C, C_Execlp,      "execlp");
 pragma Import (C, C_Fork,        "fork");
+pragma Import (C, C_GetEnv,      "getenv");
 
 end Host_Functions_Thin;
