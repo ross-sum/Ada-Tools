@@ -99,27 +99,20 @@ package body Host_Functions is
    function Launch_Process(app_name: wide_string; args: argument_array)
    return boolean is
       name_buf  : chars_ptr := New_String(To_String(app_name));
-      -- envp      : chars_ptr_array :=
-      -- (1 => New_String("TERM=xterm"), 2 => Null_Ptr);
-      argv      :
-      chars_ptr_array(size_t(args'First)..size_t(args'Last)+1);
+      argv      : chars_ptr_array(size_t(args'First)-1..size_t(args'Last)+1);
       res       : int;
    begin
+      argv(size_t(args'First)-1) := New_String(To_String(app_name));
       for item in args'Range loop
          argv(size_t(item)) := New_String(args(item).all);
-         Ada.Wide_Text_IO.Put_Line("Arg: "& 
-            To_Wide_String(args(item).all) & ".");
       end loop;
       argv(size_t(args'Last)+1) := Null_Ptr;
       res := C_Execvp(name_buf, argv);
      -- Clean up what we can
       Free (name_buf);
-      for item in args'First..args'Last+1 loop
+      for item in args'First-1..args'Last+1 loop
          Free(argv(size_t(item)));
       end loop;
-      -- for item in args'Range loop
-         -- Free(args(item));
-      -- end loop;
       return (res /= Failure);
    end Launch_Process;
 
@@ -151,12 +144,6 @@ package body Host_Functions is
       for item in envs'First..envs'Last+1 loop
          Free(envp(size_t(item)));
       end loop;
-      -- for item in args'Range loop
-         -- Free(args(item));
-      -- end loop;
-      -- for item in envs'Range loop
-         -- Free(envs(item));
-      -- end loop;
       return (res /= Failure);
    end Launch_Process;
 
@@ -181,6 +168,26 @@ package body Host_Functions is
          return To_Wide_String(Result);
       end;
    end Host_Name;
+   
+   ---------------------------
+   -- Get_Environment_Value --
+   ---------------------------
+
+   function Get_Environment_Value(for_variable : wide_string)
+    return wide_string is
+    -- Return the environemnt variable value for the specified
+    -- environment variable.
+   -- Follows from: char *getenv(const char *name);
+      Buffer : chars_ptr := New_String(To_String(for_variable));
+      Res    : chars_ptr := C_GetEnv (Buffer);
+   begin
+      declare
+         Result : constant String := Value (Res);
+      begin
+         Free (Buffer);
+         return To_Wide_String(Result);
+      end;
+   end Get_Environment_Value;
 
    -------------
    -- Execute --
@@ -215,6 +222,7 @@ package body Host_Functions is
                      elements(str_num) := new string'(To_String(
                         the_string(str_start..item-1)));
                      str_start := item + 1;
+                     str_num := str_num + 1;
                   end if;
                end loop;
             end if;
