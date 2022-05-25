@@ -27,109 +27,162 @@
 --  MA 02111-1307, USA.                                              --
 --                                                                   --
 -----------------------------------------------------------------------
-   -- generic
-   -- type Element is (<>);
-   -- type Index is (<>);
-   -- type List is array (Index range <>) of Element;
+-- generic
+-- type Element is (<>);
+-- type Index is (<>);
+-- type List is array (Index range <>) of Element;
 
-   package body Set_Of is
+package body Set_Of is
 
-      -- type Set is private;
-      -- private
-      --    type Set is array (Element) of boolean;
+   -- type Set is private;
+   -- private
+   --    type Set is array (Element) of boolean;
 
-      function Empty return Set is
-      begin
-         return (Set'Range => false);
-      end Empty;
-
-      function Full return Set is
-      begin
-         return (Set'Range => true);
-      end Full;
-
-      function Make_Set(L: List) return Set is
-         the_set : Set := Empty;
-      begin
-         for item in L'Range loop
-            the_set(L(item)) := true;
-         end loop;
-         return the_set;
-      end Make_Set;
-
-      function Make_Set(E: Element) return Set is
-         the_set : Set := Empty;
-      begin
-         the_set(E) := true;
-         return the_set;
-      end Make_Set;
-
-      function Set_Width return Index is
-        -- Need to create a list that is only as wide as a set.
-        -- This works out how wide in 'Index' we need to be.
-         count : Index := Index'First;
-      begin
-         for E in Set'Range loop
-            count := Index'Succ(count);
-         end loop;
-         return count;
-      end Set_Width;
-
-      function Decompose(S: Set) return List is
-         the_list  : List(Index'First .. Set_Width);
-         item      : Index := Index'First;
-      begin
-         for E in Set'Range loop
-            if S(E) then
-               the_list(item) := E;
-               item := Index'Succ(item);
-            end if;
-         end loop;
-         return the_list;
-      end Decompose;
-
-      function "+" (S, T: Set) return Set is
-         -- union
-      begin
-         return S or T;
-      end "+";
-
-      function "*" (S, T: Set) return Set is
-         -- intersection
-      begin
-         return S and T;
-      end "*";
-
-      function "-" (S, T: Set) return Set is
-         -- symetric difference
-      begin
-         return S xor T;
-      end "-";
-
-      function "<" (E: Element; S: Set) return boolean is
-         --inclusion
-      begin
-         return S(E);
-      end "<";
-
-      function "<=" (S, T: Set) return boolean is
-         -- contains
-      begin
-         return (S and T) = S;
-      end "<=";
-
-      function Size(of_set: Set) return natural is
-         -- number of elements
-         items : natural := 0;
-      begin
-         for item in Set'Range loop
-            if of_set(item) then
-               items := items + 1;
-            end if;
-         end loop;
-         return items;
-      end Size;
-
+   function Empty return Set is
    begin
-      null;
-   end Set_Of;
+      return (Set'Range => false);
+   end Empty;
+
+   function Full return Set is
+   begin
+      return (Set'Range => true);
+   end Full;
+
+   function Make_Set(L: List) return Set is
+      the_set : Set := Empty;
+   begin
+      for item in L'Range loop
+         the_set(L(item)) := true;
+      end loop;
+      return the_set;
+   end Make_Set;
+
+   function Make_Set(E: Element) return Set is
+      the_set : Set := Empty;
+   begin
+      the_set(E) := true;
+      return the_set;
+   end Make_Set;
+   
+   function Make_Set(E_first, E_last: Element) return Set is
+      the_set : Set := Empty;
+   begin
+      for item in E_first .. E_last loop
+         the_set(item) := true;
+      end loop;
+      return the_set;
+   end Make_Set;
+
+   function Set_Width return Index is
+     -- Need to create a list that is only as wide as a set.
+     -- This works out how wide in 'Index' we need to be.
+      count : Index := Index'First;
+   begin
+      for E in Set'Range loop
+         count := Index'Succ(count);
+      end loop;
+      return count;
+   end Set_Width;
+
+   function Decompose(S: Set) return List is
+      the_list  : List(Index'First .. Set_Width);
+      item      : Index := Index'First;
+   begin
+      for E in Set'Range loop
+         if S(E) then
+            the_list(item) := E;
+            item := Index'Succ(item);
+         end if;
+      end loop;
+      return the_list;
+   end Decompose;
+
+   function First_In(the_set : Set) return Element is
+      E : Element;
+   begin
+      E := Element'First;
+      while E < Element'Last and not the_set(E) loop
+         E := Element'Succ(E);
+      end loop;
+      return E;  -- Either the first or the last if none
+   end First_In;
+   
+   function Last_In (the_set : Set) return Element is
+      E : Element;
+   begin
+      E := Element'Last;
+      while E > Element'First and not the_set(E) loop
+         E := Element'Pred(E);
+      end loop;
+      return E;  -- Either the last or the first if none
+   end Last_In;
+   
+   function Next_In (the_set : Set; from: Element) return Element is
+      E : Element := from;
+   begin
+      if E < Element'Last then -- not at end, go forward one
+         E := Element'Succ(E);
+      end if;
+      while E < Element'Last and not the_set(E) loop
+         E := Element'Succ(E);
+      end loop;
+      return E;  -- Either the next or the last if no more
+   end Next_In;
+   
+   function Prev_In (the_set : Set; from: Element) return Element is
+      E : Element := from;
+   begin
+      if E < Element'First then -- not at beginning, go back one
+         E := Element'Pred(E);
+      end if;
+      while E > Element'First and not the_set(E) loop
+         E := Element'Pred(E);
+      end loop;
+      return E;  -- Either the last or the first if none
+   end Prev_In;
+
+   function "+" (S, T: Set) return Set is
+      -- union
+   begin
+      return S or T;
+   end "+";
+
+   function "*" (S, T: Set) return Set is
+      -- intersection
+   begin
+      return S and T;
+   end "*";
+
+   function "-" (S, T: Set) return Set is
+      -- symetric difference
+   begin
+      return S xor T;
+   end "-";
+
+   function "<" (E: Element; S: Set) return boolean is
+      --inclusion
+   begin
+      return S(E);
+   end "<";
+
+   function "<=" (S, T: Set) return boolean is
+      -- contains
+   begin
+      return (S and T) = S;
+   end "<=";
+
+   function Size(of_set: Set) return natural is
+      -- number of elements
+      items : natural := 0;
+   begin
+      for item in Set'Range loop
+         if of_set(item) then
+            items := items + 1;
+         end if;
+      end loop;
+      return items;
+   end Size;
+
+begin
+   null;
+end Set_Of;

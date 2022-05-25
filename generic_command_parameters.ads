@@ -97,6 +97,7 @@ package Generic_Command_Parameters is
    function Parameter(with_name : in text) return boolean;
 
    procedure Usage(with_cause : in wide_string := "");
+   function  The_Usage(with_cause : in wide_string := "") return text;
 
 private
 

@@ -4,7 +4,7 @@
 --                                                                   --
 --                            $Revision: 1.1 $                       --
 --                                                                   --
---  Copyright (C) 1999,2001  Hyper Quantum Pty Ltd.                  --
+--  Copyright (C) 1999,2001-2022  Hyper Quantum Pty Ltd.                  --
 --  Written by Ross Summerfield.                                     --
 --                                                                   --
 --  This package provides simple set facilities.                     --
@@ -29,40 +29,46 @@
 --  MA 02111-1307, USA.                                              --
 --                                                                   --
 -----------------------------------------------------------------------
-   generic
+generic
    type Element is (<>);
    type Index is (<>);
    type List is array (Index range <>) of Element;
 
    package Set_Of is
 
-        -- example of usage:
-        -- type Primary_List is array (positive range <>) of Primary;
-        -- package Primary_Sets is new Set_Of(Element => Primary,
-        --                                    Index   => Positive,
-        --                                    List    => Primary_List);
-        -- type colour is new Primary_Sets.Set;
-        -- white : constant colour := Empty;
-        -- black : constant colour := Full;
+     -- example of usage:
+     -- type Primary_List is array (positive range <>) of Primary;
+     -- package Primary_Sets is new Set_Of(Element => Primary,
+     --                                    Index   => Positive,
+     --                                    List    => Primary_List);
+     -- type colour is new Primary_Sets.Set;
+     -- white : constant colour := Empty;
+     -- black : constant colour := Full;
 
-      type Set is private;
+   type Set is private;
 
-      function Empty return Set;
-      function Full return Set;
+   function Empty return Set;
+   function Full return Set;
 
-      function Make_Set(L: List) return Set;
-      function Make_Set(E: Element) return Set;
-      function Decompose(S: Set) return List;
+   function Make_Set(L: List) return Set;
+   function Make_Set(E: Element) return Set;
+   function Make_Set(E_first, E_last: Element) return Set;
+   function Decompose(S: Set) return List;
+   
+   function First_In(the_set : Set) return Element;
+   function Last_In (the_set : Set) return Element;
+   function Next_In (the_set : Set; from: Element) return Element;
+   function Prev_In (the_set : Set; from: Element) return Element;
 
-      function "+" (S, T: Set) return Set;   -- union
-      function "*" (S, T: Set) return Set;   -- intersection
-      function "-" (S, T: Set) return Set;   -- symetric difference
-      function "<" (E: Element; S: Set) return boolean; --inclusion
-      function "<=" (S, T: Set) return boolean;  -- contains
-      function Size(of_set: Set) return natural;  -- number of elements
+   function "+" (S, T: Set) return Set;   -- union
+   function "*" (S, T: Set) return Set;   -- intersection
+   function "-" (S, T: Set) return Set;   -- symetric difference
+   function "<" (E: Element; S: Set) return boolean; --inclusion
+   function "<=" (S, T: Set) return boolean;  -- contains
+   function Size(of_set: Set) return natural;  -- number of elements
 
-   private
+private
 
-      type Set is array (Element) of boolean;
+   type Set is array (Element) of boolean;
 
-   end Set_Of;
+end Set_Of;
