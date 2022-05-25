@@ -1,6 +1,6 @@
 with "../dynamic-strings/dstrings";
 with "adasockets";
-project Tools is
+project Tests is
    -- $Revision:$
 
    type Hware_Option is ("sparc", "amd64", "x86", "pi", "win");
@@ -11,6 +11,10 @@ project Tools is
    for Source_Dirs use (".");
    --  Using "hware" variable for obj directory
    for Object_Dir use "obj_" & hware & "/";
+
+   -- for Main use ("test_base_64.adb");
+   -- for Main use ("test_generic_binary_trees.adb");
+   for Main use ("test_generic_binary_trees_with_data.adb");
 
    for Source_Files use ("calendar_extensions.ads", "calendar_extensions.adb",
       "additional_socket_io.ads", "additional_socket_io.adb",
@@ -37,7 +41,13 @@ project Tools is
       "tui_constants.ads",
       "wide_string_maps.ads", "wide_string_maps.adb",
       "blobs.ads", "blobs-base_64.ads", "blobs-base_64.adb",
-      "xml_primitives.ads", "xml_primitives.adb");
+      "xml_primitives.ads", "xml_primitives.adb",
+      "test_base_64.adb",
+      "test_generic_binary_trees_lib.ads", "test_generic_binary_trees_lib.adb", 
+      "test_generic_binary_trees.adb",
+      "test_generic_binary_trees_with_data_lib.ads",
+      "test_generic_binary_trees_with_data_lib.adb",
+      "test_generic_binary_trees_with_data.adb");
 
-end Tools;
+end Tests;
 
