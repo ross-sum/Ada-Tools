@@ -134,6 +134,16 @@ package body GNATCOLL.SQL_Date_and_Time is
       end if;
    end tTime_Value;
    
+   function tTime_Value (Self  : GNATCOLL.SQL.Exec.Forward_Cursor; 
+                        Field : GNATCOLL.SQL.Exec.Field_Index) return tTime is
+   begin
+      return SQL_To_tTime(Ada.Strings.Unbounded.To_String(
+                              GNATCOLL.SQL.Exec.Unbounded_Value(Self,Field)));
+      exception
+         when others =>  -- default on error is an 'empty' date
+            return SQL_To_tTime("00:00:00");
+   end tTime_Value;
+   
    function "+" (Value : tTime) return SQL_Parameter is
       R : SQL_Parameter;
       P : SQL_Parameter_tTime;

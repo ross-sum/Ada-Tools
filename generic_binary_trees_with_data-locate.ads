@@ -30,7 +30,7 @@
 --                                                                   --
 -----------------------------------------------------------------------
 
-   generic
+generic
    with function Comparison (comparitor, contains: T) return Boolean;
       -- Return true if "contains" exists within "comparitor" at
       -- the appropriate point.  For instance, to test with a
@@ -46,7 +46,7 @@
 
    package Generic_Binary_Trees_With_Data.Locate is
 
-      function The_Full_Key (for_partial_key : in T;
-      in_the_list : in list) return T;
+   function The_Full_Key (for_partial_key : in T;
+   in_the_list : in list) return T;
 
-   end Generic_Binary_Trees_With_Data.Locate;
+end Generic_Binary_Trees_With_Data.Locate;

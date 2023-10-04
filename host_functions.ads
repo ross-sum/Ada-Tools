@@ -42,6 +42,16 @@ package Host_Functions is
    function Host_Name return Wide_String;
     --  Return the name of the current host
     
+   function Process_ID return natural;
+    -- return the process Identifier of the currently running process
+   function Process_Exists(for_id : in natural) return boolean;
+    -- Indicate whether the specified process ID is still running.
+    
+   function Current_User return Wide_String;
+    -- Return the login name of the currently logged in user
+   function Current_User_ID return natural;
+    -- Return the login ID of the currently logged in user
+    
    function Get_Environment_Value(for_variable : wide_string)
     return wide_string;
     -- Return the environemnt variable value for the specified

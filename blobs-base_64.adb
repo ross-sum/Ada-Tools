@@ -30,6 +30,7 @@
 -----------------------------------------------------------------------
 with dStrings;   use dStrings;
 with Ada.Text_IO;
+with Ada.Unchecked_Conversion;
 package body Blobs.Base_64 is
    
    -- type Byte is mod 256;
@@ -144,5 +145,24 @@ package body Blobs.Base_64 is
       end loop;
       return str_result;
    end Decode;
+
+   function Cast_String_As_Blob(the_string : in string) return blob is
+      result : blob(1..the_string'Length);
+   begin
+      for i in the_string'First .. the_string'Last loop
+         result(i-the_string'First+1) :=
+	                        Byte'Val(Character'Pos(the_string(i)));
+      end loop;
+      return result;
+   end Cast_String_As_Blob;
    
+   function Cast_Blob_As_String(the_blob   : in blob) return string is
+      result : string(the_blob'First..the_blob'Last);
+   begin
+      for i in the_blob'First .. the_blob'Last loop
+         result(i) := Character'Val(Byte'Pos(the_blob(i)));
+      end loop;
+      return result;
+   end Cast_Blob_As_String;
+
 end Blobs.Base_64;

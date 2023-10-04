@@ -3,7 +3,7 @@ with "adasockets";
 project Tools is
    -- $Revision:$
 
-   type Hware_Option is ("sparc", "amd64", "x86", "pi", "win");
+   type Hware_Option is ("sparc", "amd64", "x86", "pi", "win", "pi64");
    -- Hware : Hware_Option := external ("hware", "pi");
    Hware : Hware_Option := external ("hware", "amd64");
 
@@ -37,7 +37,10 @@ project Tools is
       "tui_constants.ads",
       "wide_string_maps.ads", "wide_string_maps.adb",
       "blobs.ads", "blobs-base_64.ads", "blobs-base_64.adb",
-      "xml_primitives.ads", "xml_primitives.adb");
+      -- "gnatcoll-sql_date_and_time.ads", "gnatcoll-sql_date_and_time.adb",
+      -- "gnatcoll-sql_blob.ads", "gnatcoll-sql_blob.adb",
+      "xml_primitives.ads", "xml_primitives.adb",
+      "vectors.ads", "vectors.adb");
 
 end Tools;
 

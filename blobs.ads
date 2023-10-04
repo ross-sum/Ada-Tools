@@ -28,10 +28,11 @@
 --  Boston, MA 02110-1301, USA.                                      --
 --                                                                   --
 -----------------------------------------------------------------------
-
+-- with Interfaces;
 package Blobs is
    
-   type Byte is mod 256;
+   type Byte is mod 2**8;  -- (256)
+   for Byte'Size use 8;
    type blob is array(positive range <>) of byte;
    pragma Pack(blob);
    

@@ -91,25 +91,48 @@ package Host_Functions_Thin is
      -- otherwise it returns -1 and sets the error code in errno.
 
    function C_Fork return C.int;
-   -- Fork the current process and start execution at the return
-   -- of the fork.  The parent process gets the return value of
-   -- the child's process, whereas the child process gets a return
-   -- value of 0 (no process ID, since it is the child).
+     -- Fork the current process and start execution at the return
+     -- of the fork.  The parent process gets the return value of
+     -- the child's process, whereas the child process gets a return
+     -- value of 0 (no process ID, since it is the child).
 
    function C_GetEnv(env : Strings.chars_ptr) return Strings.chars_ptr;
-   -- return the environment varlable string for the
-   -- specified environment variable.
-   -- Follows from: char *getenv(const char *name);
-   -- This returns a pointer to the environment variable if it is found,
-   -- otherwise it returns a null pointer.
+     -- return the environment varlable string for the
+     -- specified environment variable.
+     -- Follows from: char *getenv(const char *name);
+     -- This returns a pointer to the environment variable if it is found,
+     -- otherwise it returns a null pointer.
+   
+   function C_Getlogin_r
+   (buf : Strings.chars_ptr;
+    bufsize : C.int) return C.int;
+     -- returns the logged in user identifer into buf.
+     -- c function is: int getlogin_r(char *buf, size_t bufsize);
+   
+   function C_Get_E_UID return C.int;
+     -- returns the effective User ID
+     
+   function C_Get_Process_ID return C.int;
+     -- returns the rocess Identifier for the current process
+     
+   function C_Kill(pid : C.int; sig : C.int) return C.int;
+     -- returns the status of executing the specified kill command
+     
+   function C_Get_Process_GID(pid : C.int) return C.int;
+     -- returns the process Group ID (or < 0 if it doesn't exist)
 
 private
 
-pragma Import (C, C_Gethostname, "gethostname");
-pragma Import (C, C_Execve,      "execve");
-pragma Import (C, C_Execvp,      "execvp");
-pragma Import (C, C_Execlp,      "execlp");
-pragma Import (C, C_Fork,        "fork");
-pragma Import (C, C_GetEnv,      "getenv");
+pragma Import (C, C_Gethostname,    "gethostname");
+pragma Import (C, C_Execve,         "execve");
+pragma Import (C, C_Execvp,         "execvp");
+pragma Import (C, C_Execlp,         "execlp");
+pragma Import (C, C_Fork,           "fork");
+pragma Import (C, C_GetEnv,         "getenv");
+pragma Import (C, C_Getlogin_r,     "getlogin_r");
+pragma Import (C, C_Get_E_UID,      "geteuid");
+pragma Import (C, C_Get_Process_ID, "getpid");
+pragma Import (C, C_Kill,           "kill");
+pragma Import (C, C_Get_Process_GID,"getpgid");
 
 end Host_Functions_Thin;
