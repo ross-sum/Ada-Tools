@@ -1,0 +1,51 @@
+with "../../dynamic-strings/dstrings";
+with "adasockets";
+project Test_Vectors is
+   -- $Revision:$
+
+   type Hware_Option is ("sparc", "amd64", "x86", "pi", "win", "pi64");
+   -- Hware : Hware_Option := external ("hware", "pi");
+   Hware : Hware_Option := external ("hware", "amd64");
+
+   for Languages use ("ada");
+   for Source_Dirs use (".","../");
+   --  Using "hware" variable for obj directory
+   for Object_Dir use "obj_" & hware & "/";
+
+   -- for Main use ("test_base_64.adb");
+   -- for Main use ("test_generic_binary_trees.adb");
+   -- for Main use ("test_generic_binary_trees_with_data.adb");
+   for Main use ("test_vectors.adb");
+
+   for Source_Files use ("calendar_extensions.ads", "calendar_extensions.adb",
+      "additional_socket_io.ads", "additional_socket_io.adb",
+      "config_file_manager.ads", "config_file_manager.adb",
+      "config_file_manager-file_access.ads", 
+      "config_file_manager-file_access.adb",
+      "dynamic_lists.ads", "dynamic_lists.adb",
+      "error_log.ads", "error_log.adb",
+      "general_message_types.ads", "general_message_types.adb",
+      "general_storage_pool.ads", "general_storage_pool.adb",
+      "generic_binary_trees.ads", "generic_binary_trees.adb",
+      "generic_binary_trees-locate.ads", "generic_binary_trees-locate.adb",
+      "generic_binary_trees_with_data.ads","generic_binary_trees_with_data.adb",
+      "generic_binary_trees_with_data-locate.ads",
+      "generic_binary_trees_with_data-locate.adb",
+      "generic_command_parameters.ads", "generic_command_parameters.adb",
+      "generic_versions.ads", "generic_versions.adb",
+      "host_functions.ads", "host_functions.adb", "host_functions_thin.ads",
+      "interlocks.ads", "interlocks.adb",
+      "machine_dependent_io.ads", "machine_dependent_io.adb",
+      "raw_io.ads", "raw_io.adb", "set_of.ads", "set_of.adb",
+      "string_functions.ads", "string_functions.adb",
+      "string_conversions.ads", "string_conversions.adb",
+      "tui_constants.ads",
+      "wide_string_maps.ads", "wide_string_maps.adb",
+      "blobs.ads", "blobs-base_64.ads", "blobs-base_64.adb",
+      "xml_primitives.ads", "xml_primitives.adb",
+      "generic_stack.ads", "generic_stack.adb",
+      "vectors.ads", "vectors.adb",
+      "test_vectors.adb");
+
+end Test_Vectors;
+
