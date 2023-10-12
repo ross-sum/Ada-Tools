@@ -150,7 +150,8 @@ private
          email_address          : text;
          email_allowed          : boolean := false;
          message_terminate_text : text :=
-         To_Text("Please see the data base administrator.");
+                            To_Text("Please see the data base administrator.");
+         utf8_fix_ctrl          : boolean := false;
       end record;
 
    the_error_log : log_file;  -- this is returned by system_log

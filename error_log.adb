@@ -28,10 +28,10 @@
 --  MA 02111-1307, USA.                                              --
 --                                                                   --
 -----------------------------------------------------------------------
-with Calendar_Extensions;     use Calendar_Extensions;
+with Calendar_Extensions;          use Calendar_Extensions;
 with Ada.Command_Line;
-with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Interlocks;              use Interlocks;
+with Ada.Wide_Characters.Handling; use Ada.Wide_Characters.Handling;
+with Interlocks;                   use Interlocks;
 package body Error_Log is
 
 --       type log_file is limited private;
@@ -103,6 +103,8 @@ package body Error_Log is
    procedure Set_Log_File_Name(to : in string; for_log : in out log_file; 
                                with_form : string := "") is
       -- Load up the log file path and name for further reference.
+      utf8_form  : constant string := "WCEM=8";
+      fix_control: constant string := "ctrl";
    begin
       for_log.log_file_name_and_path := Value(to);
       -- ensure we have a file type to handle the desired file
@@ -123,11 +125,18 @@ package body Error_Log is
          for_log.the_log := standard_output_file'Access;
       else
          begin
-            Open(for_log.the_log.all, Append_File, to, with_form);
+            if with_form = utf8_form & ',' & fix_control
+            then
+               Open(for_log.the_log.all, Append_File, to, utf8_form);
+               for_log.utf8_fix_ctrl := true;
+            else
+               Open(for_log.the_log.all, Append_File, to, with_form);
+            end if;
             exception
                when Name_Error =>
                   Create(for_log.the_log.all, Out_File, to, with_form);
-                  if with_form = "WCEM=8"
+                  if with_form = utf8_form or 
+                     with_form = utf8_form & ',' & fix_control
                   then -- UTF-8
                      -- Print out the hexadecimal byte-order-mark, EF BB BF
                      Put(for_log.the_log.all, wide_character'Val(16#EF#));
@@ -173,9 +182,53 @@ package body Error_Log is
             return result;
          end if;
       end Put;
+      function Parse(the_message: in text; for_log: in log_file) return text is
+         open_chevron : constant wide_character:= wide_character'Val(16#300A#);
+         close_chevron: constant wide_character:= wide_character'Val(16#300B#);
+         lf           : constant wide_character:= wide_character'Val(16#000A#);
+         cr           : constant wide_character:= wide_character'Val(16#000D#);
+         ht           : constant wide_character:= wide_character'Val(16#0009#);
+         vt           : constant wide_character:= wide_character'Val(16#000B#);
+         ff           : constant wide_character:= wide_character'Val(16#000C#);
+         ss           : constant wide_character:= wide_character'Val(16#000E#);
+         us           : constant wide_character:= wide_character'Val(16#001F#);
+         null_ch      : constant wide_character:= wide_character'Val(16#0000#);
+         ctrl_pictures: constant := 16#2400#;  -- start of control pictures blk
+         the_char     : wide_character;
+         result       : text;
+      begin
+         if for_log.utf8_fix_ctrl
+         then
+            for item in 1 .. Length(the_message) loop
+               the_char := Wide_Element(the_message, item);
+               if Is_Control(the_char)
+               then  -- a control character - chevron its numerical value
+                  case the_char is
+                     when cr | lf => 
+                        Append(the_char, to=> result);
+                     when null_ch .. ht | vt | ff | ss .. us  =>
+                        Append(open_chevron & 
+                               wide_character'Val(wide_character'Pos(
+                                                     the_char)+ctrl_pictures) &
+                               close_chevron,
+                               to => result);
+                     when others =>
+                        Append(open_chevron &Put(wide_character'Pos(the_char))&
+                               close_chevron, to=> result);
+                  end case;
+               else
+                  Append(the_char, to=> result);
+               end if;
+            end loop;
+         else
+            result := the_message;
+         end if;
+         return result;
+      end Parse;
       statement       : text;
       display_message : text;
       log_message     : text;
+      log             : log_file renames for_log;
    begin
       if Length(error_intro) > 0 then  -- a message to display
          -- Display the message and wait for the user to respond with
@@ -183,10 +236,11 @@ package body Error_Log is
          if the_error >= 0 then  -- (i.e. not negative)
             display_message := 
                Put(the_error) & ": " & error_intro &
-               ".  Message is '" & error_message & "'.  " &
+               ".  Message is '" & 
+                      Parse(the_message=>error_message,for_log=>log) & "'.  " &
                for_log.message_terminate_text;
          else  -- user wants message displayed, but not the system error
-            display_message := error_intro;
+            display_message := Parse(the_message=>error_intro, for_log=>log);
          end if;
           -- Display the message in a dialogue box
          if for_log.error_display_callback /= null then  -- defined
@@ -197,7 +251,8 @@ package body Error_Log is
          statement := To_Text(" - Message: ");  -- not an error?
       end if;
       log_message := To_Text("At " & To_String(Clock) & ", No. " &
-         Put(abs the_error)) & statement & error_message;
+         Put(abs the_error)) & statement & 
+                               Parse(the_message=>error_message, for_log=>log);
       if for_log.the_log = standard_error_file'Access then
          Log_Write_Lock.Lock;  -- in case this is called by a task
          Put_Line(Standard_Error, log_message);
@@ -257,8 +312,7 @@ package body Error_Log is
             if Length(the_result) > 0 then
                the_result := the_result & ',';
             end if;
-            the_result := the_result &
-               Deliver(from_the_list => stack_list);
+            the_result := the_result & Deliver(from_the_list => stack_list);
             Next(in_the_list => stack_list);
          end loop;
          return the_result;
@@ -267,28 +321,25 @@ package body Error_Log is
       procedure_list : text;
       error_message  : text;
    begin
-      if String_Lists.
-      Count(of_items_in_the_list=>for_log.procedure_stack) > 0
+      if String_Lists.Count(of_items_in_the_list=>for_log.procedure_stack) > 0
       then  -- get the last one
          Last(in_the_list =>for_log.procedure_stack);
-         procedure_name :=
-            Deliver(from_the_list=>for_log.procedure_stack);
-         procedure_list :=
-            Call_Stack(for_list=>for_log.procedure_stack);
+         procedure_name := Deliver(from_the_list=>for_log.procedure_stack);
+         procedure_list := Call_Stack(for_list=>for_log.procedure_stack);
       else  -- no procedure names pushed on stack
          procedure_name := To_Text("NONE");
       end if;
       Push_Stack(for_log, "Error_Log.Put");
       error_message := "Untrapped application error for " &
-         To_Wide_String(Command_Name) & ": Exception '" & 
-         error_exception &
-         "' raised at procedure/function '" & 
-         procedure_name & "'.";
+                       Value(Command_Name) & ": Exception '" & 
+                       error_exception &
+                       "' raised at procedure/function '" & 
+                       procedure_name & "'.";
       Put(for_log, the_error => 2,
-         error_intro => "Untrapped Exception",
-         error_message => To_String(error_message));
+          error_intro => "Untrapped Exception",
+          error_message => To_String(error_message));
       Put(for_log, the_error => -3, error_intro => "",
-         error_message => "Call stack: " & To_String(procedure_list));
+          error_message => "Call stack: " & To_String(procedure_list));
       if for_log.email_allowed then  -- e-mail the log file to support
          Send_Email;
       end if;
@@ -328,7 +379,7 @@ package body Error_Log is
    begin
       if in_log.the_debug_level >= at_level then
          Put(in_log, the_error => at_level, error_intro => Clear,
-                     error_message => with_details);
+             error_message => with_details);
       end if;
    end Debug_Data;
 
@@ -358,8 +409,7 @@ package body Error_Log is
                         details : in wide_string) is
    begin
       Last(for_log.procedure_stack);
-      Insert(into => for_log.procedure_stack,
-         the_data => To_Text(details));
+      Insert(into => for_log.procedure_stack, the_data => To_Text(details));
    end Push_Stack;
 
    procedure Push_Stack(details : in wide_string) is
