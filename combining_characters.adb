@@ -1,4 +1,34 @@
-
+-----------------------------------------------------------------------
+--                                                                   --
+--              C O M B I N I N G _ C H A R A C T E R S              --
+--                                                                   --
+--                              B o d y                              --
+--                                                                   --
+--                           $Revision: 1.0 $                        --
+--                                                                   --
+--  Copyright (C) 2023  Hyper Quantum Pty Ltd.                       --
+--  Written by Ross Summerfield.                                     --
+--                                                                   --
+--  This  package  builds and provides information on  the  set  of  --
+--  combining  characters  in the short  (from  Ada's  perspective,  --
+--  Wide_Character) set.                                             --
+--                                                                   --
+--  Version History:                                                 --
+--  $Log$
+--                                                                   --
+--  Combining_Characters is free software; you can redistribute  it  --
+--  and/or modify it under terms of the GNU General Public  Licence  --
+--  as published by the Free Software Foundation; either version 2,  --
+--  or  (at  your  option)  any  later  version.   Cell_Writer   is  --
+--  distributed  in  hope that it will be useful, but  WITHOUT  ANY  --
+--  WARRANTY; without even the implied warranty of  MERCHANTABILITY  --
+--  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public  --
+--  Licence f or more details.  You should have received a copy  of  --
+--  the  GNU  General Public Licence  distributed  with  Combining_  --
+--  Characters.  If not, write to the Free Software Foundation,  51  --
+--  Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.        --
+--                                                                   --
+-----------------------------------------------------------------------
 -- with Set_of;
 package body Combining_Characters is
 

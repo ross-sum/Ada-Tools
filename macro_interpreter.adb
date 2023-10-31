@@ -9,25 +9,19 @@
 --  Copyright (C) 2023  Hyper Quantum Pty Ltd.                       --
 --  Written by Ross Summerfield.                                     --
 --                                                                   --
---  This package is a code interpreter for the combining  character  --
---  instruction  set.   The combining  character  instruction  sets  --
---  operate on a single cell. If that cell contains several Unicode  --
---  characters,  then  it  operates on all of  them.  If  the  cell  --
---  contains  one character,  which for instance would be the  case  --
---  for the Latin character set, then it operates on just that one.  --
+--  This  package is a macro interpreter that is a general  purpose  --
+--  interpreter that is targeted to be able to be used on combining  --
+--  characters.   It has a register set that is initialised  either  --
+--  through the macro code or prior to execution.  Results from the  --
+--  execution  of  a  specified  macro  are  extracted  after   the  --
+--  execution is finished.                                           --
 --                                                                   --
 --  The algorithm for the Execute operation is as follows:           --
 --  The main procedure (Execute) executes the following blocks, with --
 --  components executed by sub-procedures as appropriate:            --
 -- 1. Initialise registers                                           --
---     1 Set H to passed in parameter (see above)                    --
---     2 Set S to the current cell's contents as represented by the  --
---       cell's hint text                                            --
---     3 Set registers A to E to 0                                   --
---     4 Set F to ' ' (16#0020#)                                     --
---     5 Set G to ""                                                 --
---     6 Define an array of the current character block's space      --
---       characters, defining each character's width                 --
+--     1 Set desired registers for input to starting values.         --
+--     2 Set other registers to a null state (can be done in macro)  --
 -- 2. Load and parse (clean out comments, simplify spaces)           --
 --    instruction set blob into an array of text, breaking at ;      --
 -- 3. Execute the instructions by recursively passing in the block   --
@@ -43,34 +37,37 @@
 --     • If an operator command (INSERT, REPLACE, DELETE), execute   --
 --       the specific command on the specified register              --
 --     • If EXIT, then providing in a FOR loop, exit the recursion   --
---       level out to beyond that FOR loop level; if none is         --
---       encountered, then raise the exception.                      --
---     • If a block command (IF, FOR), determine the end of the      --
---       block, calculate the block control (i.e. of the IF or the   --
---       FOR), then recursion down, passing down an array containing --
---       the commands in the block and the block controls.           --
+--       level out to beyond that FOR loop level, similarly for a    --
+--       simple loop; if none is encountered, then raise the         --
+--       exception.                                                  --
+--     • If a block command (IF, FOR, LOOP), determine the end of    --
+--       the block, calculate the block control (i.e. of the IF or   --
+--       the FOR or the LOOP), then recursion down, passing down an  --
+--       array containing the commands in the block and the block    --
+--        controls.                                                  --
 --     • For sub-commands (LIST, FIND, CHAR, ABS), perform the       --
 --        operation and return its value, for mathematical           --
 --       operators, perform the operation on the left (if not a      --
 --       unary operator) and right components and return its value,  --
 --       recursing where  brackets require.                          --
--- 4. Load the S register contents back into the currently selected  --
---    cell's hint and initiate a redraw for that cell.               --
+-- 4. The calling routine should load the appropriate register(s')   --
+--    contents back into the currently selected cell's hint and      --
+-- initiate a redraw for that cell.                                  --
 --                                                                   --
 --  Version History:                                                 --
 --  $Log$
 --                                                                   --
---  Cell_Writer  is free software; you can redistribute  it  and/or  --
---  modify  it under terms of the GNU  General  Public  Licence  as  --
---  published by the Free Software Foundation; either version 2, or  --
---  (at your option) any later version.  Cell_Writer is distributed  --
---  in  hope  that  it will be useful, but  WITHOUT  ANY  WARRANTY;  --
---  without even the implied warranty of MERCHANTABILITY or FITNESS  --
---  FOR  A PARTICULAR PURPOSE.  See the GNU General Public  Licence  --
---  for  more details.  You should have received a copy of the  GNU  --
---  General  Public Licence distributed with Cell_Writer.  If  not,  --
---  write  to  the Free Software Foundation,  51  Franklin  Street,  --
---  Fifth Floor, Boston, MA 02110-1301, USA.                         --
+--  Macro_Interpreter  is  free software; you can  redistribute  it  --
+--  and/or modify it under terms of the GNU General Public  Licence  --
+--  as published by the Free Software Foundation; either version 2,  --
+--  or  (at  your  option)  any  later  version.   Cell_Writer   is  --
+--  distributed  in  hope that it will be useful, but  WITHOUT  ANY  --
+--  WARRANTY; without even the implied warranty of  MERCHANTABILITY  --
+--  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public  --
+--  Licence  for more details.  You should have received a copy  of  --
+--  the  GNU  General  Public  Licence  distributed   with   Macro_  --
+--  Interpreter.  If not, write to the Free Software Foundation, 51  --
+--  Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.        --
 --                                                                   --
 -----------------------------------------------------------------------
 -- with dStrings;          use dStrings;

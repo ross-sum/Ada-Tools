@@ -185,6 +185,10 @@
 --   encountered) loop. 
 -- Format is:
 --   EXIT
+--   EXIT WHEN {condition}
+-- Where:
+--   {condition} is some comparison of two data sources (which could be
+--               constant(s) or registers or some other equation formulae).
 -- 
 -- LIST
 -- This is a 'function' that lists out the sequential characters or numbers
@@ -305,17 +309,17 @@
 --  Version History:                                                 --
 --  $Log$
 --                                                                   --
---  Cell_Writer  is free software; you can redistribute  it  and/or  --
---  modify  it under terms of the GNU  General  Public  Licence  as  --
---  published by the Free Software Foundation; either version 2, or  --
---  (at your option) any later version.  Cell_Writer is distributed  --
---  in  hope  that  it will be useful, but  WITHOUT  ANY  WARRANTY;  --
---  without even the implied warranty of MERCHANTABILITY or FITNESS  --
---  FOR  A PARTICULAR PURPOSE.  See the GNU General Public  Licence  --
---  for  more details.  You should have received a copy of the  GNU  --
---  General  Public Licence distributed with Cell_Writer.  If  not,  --
---  write  to  the Free Software Foundation,  51  Franklin  Street,  --
---  Fifth Floor, Boston, MA 02110-1301, USA.                         --
+--  Macro_Interpreter  is  free software; you can  redistribute  it  --
+--  and/or modify it under terms of the GNU General Public  Licence  --
+--  as published by the Free Software Foundation; either version 2,  --
+--  or  (at  your  option)  any  later  version.   Cell_Writer   is  --
+--  distributed  in  hope that it will be useful, but  WITHOUT  ANY  --
+--  WARRANTY; without even the implied warranty of  MERCHANTABILITY  --
+--  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public  --
+--  Licence  for more details.  You should have received a copy  of  --
+--  the  GNU  General  Public  Licence  distributed   with   Macro_  --
+--  Interpreter.  If not, write to the Free Software Foundation, 51  --
+--  Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.        --
 --                                                                   --
 -----------------------------------------------------------------------
 -- with GNATCOLL.SQL.Exec;
