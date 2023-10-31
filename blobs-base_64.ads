@@ -39,5 +39,7 @@ package Blobs.Base_64 is
    function Encode(the_string : in string) return string;
    function Decode(the_base_64 : in string) return blob;
    function Decode(the_base_64_text : in string) return string;
-   
+   function Cast_String_As_Blob(the_string : in string) return blob;
+   function Cast_Blob_As_String(the_blob   : in blob) return string;
+
 end Blobs.Base_64;
