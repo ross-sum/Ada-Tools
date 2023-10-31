@@ -147,6 +147,22 @@ package body Host_Functions is
       return (res /= Failure);
    end Launch_Process;
 
+   ------------------------
+   -- Process Identifier --
+   ------------------------
+
+   function Process_ID return natural is
+    -- return the process Identifier of the currently running process
+   begin
+      return natural(C_Get_Process_ID);
+   end Process_ID;
+
+   function Process_Exists(for_id : in natural) return boolean is
+    -- Indicate whether the specified process ID is still running.
+   begin
+      return (C_Get_Process_GID(C.int(for_id)) >= 0);
+   end Process_Exists;
+
    ---------------
    -- Host_Name --
    ---------------
@@ -168,6 +184,34 @@ package body Host_Functions is
          return To_Wide_String(Result);
       end;
    end Host_Name;
+
+   ------------------
+   -- Current_User --
+   ------------------
+
+   function Current_User return Wide_String is
+    -- Return the login name of the currently logged in user
+      Buff   : char_array_access  := Allocate;
+      Buffer : constant chars_ptr := To_Chars_Ptr (Buff);
+      Res    : constant int       := C_Getlogin_r (Buffer, Buff'Length);
+   begin
+      if Res = Failure then
+         Free (Buff);
+         Raise_Error (Errno, "");
+      end if;
+      declare
+         Result : constant String := Value (Buffer);
+      begin
+         Free (Buff);
+         return To_Wide_String(Result);
+      end;
+   end Current_User;
+
+   function Current_User_ID return natural is
+    -- Return the login ID of the currently logged in user
+   begin
+      return natural(C_Get_E_UID);
+   end Current_User_ID;
    
    ---------------------------
    -- Get_Environment_Value --
@@ -181,12 +225,18 @@ package body Host_Functions is
       Buffer : chars_ptr := New_String(To_String(for_variable));
       Res    : chars_ptr := C_GetEnv (Buffer);
    begin
-      declare
-         Result : constant String := Value (Res);
-      begin
+      if Res /= Null_Ptr
+      then  -- Some data to get
+         declare
+            Result : constant String := Value (Res);
+         begin
+            Free (Buffer);
+            return To_Wide_String(Result);
+         end;
+      else  -- No data to get, return empty string
          Free (Buffer);
-         return To_Wide_String(Result);
-      end;
+         return "";
+      end if;
    end Get_Environment_Value;
 
    -------------

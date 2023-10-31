@@ -28,8 +28,8 @@
 --  GNU Lesser General Public Licence for more details.              --
 --  You  should  have  received a copy of the  GNU  Lesser  General  --
 --  Public  Licence along with this library.  If not, write to  the  --
---  Free Software Foundation, 59 Temple Place -  Suite 330, Boston,  -- 
---  MA 02111-1307, USA.                                              --
+--  Free  Software  Foundation, 51 Franklin  Street,  Fifth  Floor,  --
+--  Boston, MA 02110-1301, USA.                                      --
 --                                                                   --
 -----------------------------------------------------------------------
 
@@ -45,7 +45,7 @@ generic
    the_title : wide_string;
       -- The application's title (as ought to be displayed in the
       -- title bar).
-   package Generic_Versions is
+package Generic_Versions is
 
    function Version           return wide_string;
    function Application_Title return wide_string;
