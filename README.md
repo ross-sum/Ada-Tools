@@ -15,6 +15,7 @@ Packages in this group are:
 - generic_binary_trees, generic_binary_trees-locate,
 - generic_binary_trees_with_data, generic_binary_trees_with_data-locate,
 - generic_command_parameters,
+- generic_stack,
 - generic_versions,
 - host_functions, host_functions_thin,
 - interlocks,
@@ -24,5 +25,6 @@ Packages in this group are:
 - string_functions,
 - string_conversions,
 - tui_constants (Text User Interface Package library header only, no body),
+- vectors (including point as well as vector arithmetic),
 - wide_string_maps,
 - xml_primitives
