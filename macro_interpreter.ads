@@ -333,6 +333,9 @@ package Macro_Interpreter is
    BAD_MACRO_CODE : exception;
       -- A handler at the top level main macro execution procedure logs and
       -- then displays the error in a pop-up whin this exception is raised.
+   procedure Set_Log_Level(to : in natural);
+      -- Set the logging level number for logging the causes of error.
+      -- The default is 2.
 
    type all_register_names is (const, A, B, C, D, E, F, G, H, S, Y);
    subtype register_name   is all_register_names range A .. Y;
@@ -377,6 +380,7 @@ package Macro_Interpreter is
 private
 
    reraise_bad_macro_code_exception : boolean;
+   mloglvl : natural := 2;
    
    multiply_ch: constant wide_character := wide_character'Val(16#00D7#); -- '×'
    divide_ch  : constant wide_character := wide_character'Val(16#00F7#); -- '÷'

@@ -95,6 +95,13 @@ package body Macro_Interpreter is
    begin
       return a < b;
    end LessThan;
+   
+   procedure Set_Log_Level(to : in natural) is
+      -- Set the logging level number for logging the causes of error.
+      -- The default is 2.
+   begin
+      mloglvl := to;
+   end Set_Log_Level;
 
    procedure Initialise(the_registers : out register_array) is
       -- set the discrimanent for each position to match the position
@@ -256,12 +263,9 @@ package body Macro_Interpreter is
          begin
             if the_equation = null
             then
-               Error_Log.Debug_Data(at_level => 8, with_details => "Get_Param(from_equation): processing equation that is null.");
                return 0.0;
             else
-               Error_Log.Debug_Data(at_level => 8, with_details => "Get_Param(from_equation): processing equation " & the_equation.eq'Wide_Image & ".");
                Execute(the_equation, at_level + 1);
-               Error_Log.Debug_Data(at_level => 8, with_details => "Get_Param(from_equation): Executed equation " & the_equation.eq'Wide_Image & " with register '" & register_ids(the_equation.register) & "' with operator '" & all_maths_operators(the_equation.operator) & "' with a previous eqution in existence = " & Boolean'Wide_Image(the_equation.last_equ /= null) & ".");
                -- In case a register is specified, work out if a character
                -- position is specified
                the_reg := the_equation.register;
@@ -275,7 +279,6 @@ package body Macro_Interpreter is
                      then
                         char_pos := 1;
                      end if;
-                     Error_Log.Debug_Data(at_level => 8, with_details => "Get_Param(from_equation): Type is mathematical with m_result = " & Put_Into_String(the_equation.m_result,3) & " and with register '" & register_ids(the_equation.register) & "' and char pos " & Put_Into_String(char_pos) & ".");
                      if the_reg /= const
                      then
                         case the_reg is
@@ -283,7 +286,6 @@ package body Macro_Interpreter is
                               param := Long_Float(wide_character'Pos(
                                          Wide_Element(
                                           registers(the_reg).reg_t,char_pos)));
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Get_Param: set param (= Wide_Element(registers(" & register_ids(the_reg) & ").reg_t)," & Put_Into_String(char_pos) & ") = '" & Put_Into_String(param) & "'.");
                            when A .. E =>  -- assume not a character
                               if the_equation.operator in numeric_operator and 
                                  the_equation.reg_parm = null
@@ -310,7 +312,6 @@ package body Macro_Interpreter is
                   when funct =>
                      param := the_equation.f_result;
                   when others =>
-                     Error_Log.Debug_Data(at_level => 8, with_details => "Get_Param(from_equation): Type is others (" & the_equation.eq'Wide_Image & ") with m_result = " & Put_Into_String(the_equation.m_result,3) & " and with register '" & register_ids(the_equation.register) & "' and char pos " & Put_Into_String(char_pos) & ".");
                      case the_equation.register is
                         when A .. E =>  -- get that register
                            param:=registers(the_equation.register).reg_f;
@@ -330,7 +331,6 @@ package body Macro_Interpreter is
                            param := 0.0;
                      end case;
                end case;
-               Error_Log.Debug_Data(at_level => 8, with_details => "Get_Param(from_equation): param = " & Put_Into_String(param,2) & ".");
                return param;
             end if;
          end Get_Param;
@@ -358,12 +358,10 @@ package body Macro_Interpreter is
                   end if;
                end loop;
             end if;
-            Error_Log.Debug_Data(at_level => 9, with_details => "Char: set result for start character '" & start_ch & "' (" & Put_into_String(start) & ") and size = " & Put_Into_String(size, 3) &" to '" & result & "' (" & Put_Into_String(integer(wide_character'Pos(result))) & ").");
             return result;
          end Char;
          function Abs_Value(of_number : in long_float) return long_float is
          begin
-            Error_Log.Debug_Data(at_level => 9, with_details => "Abs: set result Abs(" & Put_Into_String(of_number,3) & ") = " & Put_Into_String(Abs(of_number),3) & ".");
             return Abs(of_number);
          end Abs_Value;
          function Find(value : wide_character; 
@@ -375,11 +373,9 @@ package body Macro_Interpreter is
                if Wide_Element(registers(reg).reg_t, char_pos) = value
                then  -- found it
                   result := char_pos;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Find: set result Find(" & value & ") = " & Put_Into_String(result) & ".");
                   exit;  -- finish looking
                end if;
             end loop;
-            Error_Log.Debug_Data(at_level => 9, with_details => "Find: set result Find(" & value & ") = " & Put_Into_String(result) & " (found nothing if 0).");
             return result;
          end Find;
          function Width(value : wide_character) return long_float is
@@ -410,13 +406,11 @@ package body Macro_Interpreter is
             case of_the_reg is
                when G | H | S =>  -- this has a length
                   result := Length(registers(of_the_reg).reg_t); 
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Str_Length: set result (= Length(registers(" & register_ids(of_the_reg) & ").reg_t)) = " & Put_Into_String(result) & ".");
                when A .. E =>  -- this doesn't have a length
                   result := 0;
                when F =>  -- this has a length of 1
                   result := 1;
                when others => null;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Str_Length: set result (= Length(registers(" & register_ids(of_the_reg) & ").reg_t)) = " & Put_Into_String(result) & ".");
             end case;
             return result;
          end Str_Length;
@@ -476,16 +470,13 @@ package body Macro_Interpreter is
             result   : boolean := false;
             lhs      : wide_character;
          begin
-            Error_Log.Debug_Data(at_level => 9, with_details => "The_IN_Value: for_register '" & register_ids(for_register) & "' with_register_parameter " & Put_Into_String(char_pos) & " and range condition '" & at_range_condition.eq'Wide_Image & "'.");
             -- First, get the L.H.S. (the register)
             if char_pos = 0 then  -- there is no characer position specified
                char_pos := 1;  -- worst case scenario
             end if;
             case for_register is
                when G | H | S =>  -- this has a length
-                  Error_Log.Debug_Data(at_level => 9, with_details => "The_IN_Value: registers (" & register_ids(for_register) & ").reg_t = '" & registers(for_register).reg_t & "'.");
                   lhs := Wide_Element(registers(for_register).reg_t,char_pos); 
-                  Error_Log.Debug_Data(at_level => 9, with_details => "The_IN_Value: set lhs (= Wide_Element(registers(" & register_ids(for_register) & ").reg_t)," & Put_Into_String(char_pos) & ") = '" & lhs & "'.");
                when A .. E =>  -- assume a character in integer representation
                   lhs := wide_character'Val(
                                        integer(registers(for_register).reg_f));
@@ -494,7 +485,7 @@ package body Macro_Interpreter is
                when Y => -- an error condition in this program
                   lhs := null_ch;-- should raise exception
                when const =>  -- error condition in macro   
-                  Error_Log.Debug_Data(at_level => 9, 
+                  Error_Log.Debug_Data(at_level => mloglvl, 
                                    with_details=>"Execute: raising exception "&
                                                  "on instruction = 'EQUATION" &
                                                  "' for no register defined.");
@@ -507,11 +498,10 @@ package body Macro_Interpreter is
             result:= In_Range(the_ch=>lhs,
                                  start_ch=>wide_character'Val(integer(param1)),
                                  end_ch=>wide_character'Val(integer(param2)));
-            Error_Log.Debug_Data(at_level => 9, with_details => "The_IN_Value: set result comparing to registers(" & register_ids(for_register) & ").reg_t) = " & result'Wide_Image & ".");
             return result;
             exception
                when Ada.Strings.Index_Error =>  -- access attempt beyond string
-                  Error_Log.Debug_Data(at_level => 9, 
+                  Error_Log.Debug_Data(at_level => mloglvl, 
                                 with_details => "Execute: raising exception " &
                                                 "on executing an equation (" &
                                                 "The_IN_Value)for attempt to "& 
@@ -531,7 +521,6 @@ package body Macro_Interpreter is
                when equals          => result := the_value =  against;
                when range_condition => result := false;
             end case;
-            Error_Log.Debug_Data(at_level => 8, with_details => "Compare(the_value " & Put_Into_String(the_value,3) & ", against " & Put_Into_String(against,3) & "): using operator '" & all_maths_operators(using_operator) & "' = " & result'Wide_Image & ".");
             return result;
          end Compare;
          function Combine(the_value, with_value : in long_float;
@@ -551,7 +540,6 @@ package body Macro_Interpreter is
                when minus    => result := the_value - with_value;
                when others   => result := the_value + with_value;
             end case;
-            Error_Log.Debug_Data(at_level => 8, with_details => "Combine(the_value " & Put_Into_String(the_value,3) & ", with_value " & Put_Into_String(with_value,3) & "): using operator '" & all_maths_operators(using_operator) & "' = " & Put_Into_String(result,3) & ".");
             return result;
          end Combine;
          function Combine(the_value: in boolean; with_value: in boolean:=false;
@@ -564,7 +552,6 @@ package body Macro_Interpreter is
                when logical_not => result := not the_value;
                when others      => result := the_value or  with_value;
             end case;
-            Error_Log.Debug_Data(at_level => 8, with_details => "Combine(the_value " & the_value'Wide_Image & ", with_value " & with_value'Wide_Image & "): using operator '" & all_maths_operators(using_operator) & "' = " & result'Wide_Image & ".");
             return result;
          end Combine;
          function Combine(the_value, with_value: in text;
@@ -575,7 +562,6 @@ package body Macro_Interpreter is
                when concat => result := the_value & with_value;
                when others => result := the_value & with_value;
             end case;
-            Error_Log.Debug_Data(at_level => 8, with_details => "Combine(the_value '" & the_value & "', with_value '" & with_value & "'): using operator '" & all_maths_operators(using_operator) & "' = '" & result & "'.");
             return result;
          end Combine;
          equation          : equation_access := the_equation;
@@ -592,7 +578,6 @@ package body Macro_Interpreter is
          Clear_Results(for_equation => equation);
          -- Get the initial target register
          register := equation.register;
-         Error_Log.Debug_Data(at_level => 7, with_details => "Execute(the_equation): Start." & " At level " & Put_Into_String(at_level) & ", register = '" & register'Wide_Image & "' and is of type " & equation.eq'Wide_Image & ".");
          -- Get/calculate any parameters for the register (only applies to S+G)
          if register = S or register = G
          then
@@ -600,8 +585,6 @@ package body Macro_Interpreter is
          end if;
          -- Now process the equation bits, going forward (forward pass)
          while equation /= null loop
-            if equation.register in A..E then Error_Log.Debug_Data(at_level => 8, with_details => "Execute(the_equation): processing equation " & equation.eq'Wide_Image & ". Register = '" & register_ids(equation.register)  & "' (" & Put_Into_String(registers(equation.register).reg_f) & ") with operator '" & all_maths_operators(equation.operator) & "'."); 
-            else Error_Log.Debug_Data(at_level => 8, with_details => "Execute(the_equation): processing equation " & equation.eq'Wide_Image & ". Register = '" & register_ids(equation.register)  & "' with operator '" & all_maths_operators(equation.operator) & "'."); end if;
             -- Get any parameters for the register
             if equation.register /= const and equation.reg_parm /= null
             then  -- parameter specified - calculate it's value
@@ -611,7 +594,6 @@ package body Macro_Interpreter is
                when mathematical =>
                   case equation.operator is
                      when numeric_operator =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with '" & all_maths_operators(equation.operator) & "' and equation.m_result = " & Put_Into_String(equation.m_result,3) & ".");
                         if equation.m_result = 0.0 then
                            case equation.register is
                               when F => param1:=long_float(wide_character'Pos(
@@ -620,7 +602,6 @@ package body Macro_Interpreter is
                                            registers(equation.register).reg_f;
                               when others => param1 := 0.0;
                            end case;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with operator '" & all_maths_operators(equation.operator) & "'. Register = '" & register_ids(equation.register) & "' and parameter " & Put_Into_String(param1,2) & ".");
                            if equation.last_equ /= null and then
                               equation.last_equ.m_result = 0.0
                            then
@@ -630,13 +611,10 @@ package body Macro_Interpreter is
                            end if;
                         end if;
                      when ellipses =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with 'ellipses'.");
                         null;
                      when range_condition =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with 'ellipses'.");
                         null;
                      when none =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with operator 'none'. Register = '" & register_ids(equation.register) & "'.");
                         if equation.register /= const and
                            equation.m_result = 0.0 then
                            case equation.register is
@@ -646,24 +624,21 @@ package body Macro_Interpreter is
                                            registers(equation.register).reg_f;
                               when others => param1 := 0.0;
                            end case;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with operator 'none'. Register = '" & register_ids(equation.register) & "' and parameter " & Put_Into_String(param1,2) & ".");
                            equation.m_result := equation.m_result + param1;
                         else
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with operator 'none'. Register = '" & register_ids(equation.register) & "' and equation.m_result = " & Put_Into_String(equation.m_result,2) & ".");
+                           null;
                         end if;
                      when assign =>
                         Execute(equation.equation, at_level + 1);
                         reverse_start := equation;
                         exit;  -- quit the loop;
                      when others =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with 'others' (" & all_maths_operators(equation.operator) & ").");
                         null;
                   end case;
                   null;
                when logical =>
                   case equation.operator is
                      when logical_operator =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing logical equation with '" & all_maths_operators(equation.operator) & "'.");
                         if equation.l_result = false then
                            case equation.register is
                               when F => logres:=(wide_character'Pos(
@@ -674,7 +649,6 @@ package body Macro_Interpreter is
                                             registers(equation.register).reg_b;
                               when others => logres := false;
                            end case;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with operator '" & all_maths_operators(equation.operator) & "'. Register = '" & register_ids(equation.register) & "' and parameter " & logres'Wide_Image & ".");
                            if equation.last_equ /= null
                            then
                               equation.last_equ.l_result := logres;
@@ -684,14 +658,11 @@ package body Macro_Interpreter is
                         end if;
                         null;
                      when ellipses =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing logical equation with 'ellipses'.");
                         null;
                      when range_condition =>  -- (IN) This will be a function
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing logical equation with operator 'range_condition' (IN).");
                         if equation.equation /= null and then 
                            equation.equation.eq = funct
                         then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing logical equation 'range_condition' (IN) with child at 'funct' and register '" & register_ids(equation.register) & "'.");
                            if equation.reg_parm /= null
                            then
                               register_position := integer(equation.reg_parm.m_result);
@@ -704,11 +675,10 @@ package body Macro_Interpreter is
                                            at_range_condition => equation.equation);
                         end if;
                      when none =>  -- a value, check children for type
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing logical equation with operator 'none'.");
                         if equation.equation /= null and then 
                            equation.equation.eq = funct
                         then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing logical equation with child at 'funct'.");
+                           null;
                         elsif equation.register /= const and
                            equation.l_result = false then
                            case equation.register is
@@ -720,7 +690,6 @@ package body Macro_Interpreter is
                                             registers(equation.register).reg_b;
                               when others => logres := false;
                            end case;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing mathematical equation with operator '" & all_maths_operators(equation.operator) & "'. Register = '" & register_ids(equation.register) & "' and parameter " & logres'Wide_Image & ".");
                            equation.l_result := equation.l_result or logres;
                         end if;
                      when assign =>
@@ -728,21 +697,17 @@ package body Macro_Interpreter is
                         reverse_start := equation;
                         exit;  -- quit the loop;
                      when others =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing logical equation with operator 'others'(" & all_maths_operators(equation.operator) & ").");
                         if equation.equation /= null and then 
                            equation.equation.eq = funct
                         then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing logical equation with child at 'funct'.");
                            null;
                         end if;
                         null;
                   end case;
                   null;
                when textual =>
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing textual equation based on operator.");
                   case equation.operator is
                      when concat =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing textual equation with '" & all_maths_operators(equation.operator) & "' and equation.t_result = '" & equation.t_result & "'.");
                         if Length(equation.t_result) = 0 then
                            case equation.register is
                               when F => txtres:=To_Text(
@@ -760,8 +725,7 @@ package body Macro_Interpreter is
                                            registers(equation.register).reg_f);
                               when others => Clear(txtres);
                            end case;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing textual equation with operator '" & all_maths_operators(equation.operator) & "'. Register = '" & register_ids(equation.register) & "' and parameter '" & txtres & "'.");
-                           if equation.last_equ /= null and then  ---*** elsif
+                           if equation.last_equ /= null and then
                               equation.last_equ.eq = funct
                            then  -- we would need to add it in at the head
                               null;
@@ -771,7 +735,6 @@ package body Macro_Interpreter is
                            end if;
                         end if;
                      when none =>  -- a value, check children for type
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing textual equation with operator 'none'. Register = '" & register_ids(equation.register) & "'.");
                         if equation.register /= const and
                            Length(equation.t_result) = 0 then
                            case equation.register is
@@ -790,8 +753,7 @@ package body Macro_Interpreter is
                                            registers(equation.register).reg_f);
                               when others => Clear(txtres);
                            end case;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing textual equation with operator 'none'. Register = '" & register_ids(equation.register) & "' and parameter '" & txtres & "'.");
-                           if equation.last_equ /= null and then  ---*** elsif
+                           if equation.last_equ /= null and then
                               equation.last_equ.eq = funct
                            then  -- we would need to add it in at the head
                               null;
@@ -805,14 +767,11 @@ package body Macro_Interpreter is
                         reverse_start := equation;
                         exit;  -- quit the loop;
                      when others =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing textual equation with 'others' operator (" & equation.operator'Wide_Image & ").");
                         null;
                   end case;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing textual equation - finished processing of 'based on operator'.");
                   null;
                when bracketed =>
                   -- Execute the equation
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): executing bracketed equation where equation.b_equation = " & equation.b_equation.eq'Wide_Image & ".");
                   Execute(equation.b_equation, at_level + 1);
                   -- Reach in to extract the result
                   case equation.b_equation.eq is
@@ -838,13 +797,10 @@ package body Macro_Interpreter is
                      when others =>
                         null;  -- Do nothing at this stage
                   end case;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): executed bracketed equation of type " & equation.b_equation.eq'Wide_Image & " with result  of " & Put_Into_String(equation.b_result,2) & ".");
                when funct =>
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing equation - Starting processing Funct.");
                   -- calculate the parameter(s)
                   param1 := Get_Param(from_equation => equation.f_param1);
                   param2 := Get_Param(from_equation => equation.f_param2);
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing funct equation with parameters " & Put_Into_String(param1,2) & " and " & Put_Into_String(param2,2) & " for function '" & equation.f_type'Wide_Image & "'" & ".");
                   -- Execute the function, storing the result in f_result.
                   case equation.f_type is
                      when cCHAR =>
@@ -852,22 +808,18 @@ package body Macro_Interpreter is
                            Char(start=>integer(param1),size=>param2)));
                         equation.ft_result := To_Text(
                                wide_character'Val(integer(equation.f_result)));
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing cCHAR with parameters = " & Put_Into_String(integer(param1)) & " and " & Put_Into_String(param2,3) & " with result = '" & wide_character'Val(integer(equation.f_result)) & "'"); 
                         if equation.last_equ /= null and then
                            equation.last_equ.eq = mathematical and then
                            equation.last_equ.operator = none
                         then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processed cCHAR and set equation.last_equ.m_result := equation.f_result = '" & wide_character'Val(integer(equation.f_result)) & "' (IS THIS USED?)"); 
                            equation.last_equ.m_result := equation.f_result;
                         elsif  equation.last_equ /= null and then
                            equation.last_equ.eq = textual and then
                            equation.last_equ.operator = none
                         then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processed cCHAR and set equation.last_equ.t_result := To_Text(equation.f_result) = '" & wide_character'Val(integer(equation.f_result)) & "' (IS THIS USED?)"); 
                            equation.last_equ.t_result := equation.ft_result;
                         end if;
                      when cABS =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing cABS with parameter = '" & Put_Into_String(param1, 3) & "'"); 
                         equation.f_result := Abs_Value(of_number => param1);
                         if equation.last_equ /= null and then
                            equation.last_equ.eq = mathematical and then
@@ -875,7 +827,6 @@ package body Macro_Interpreter is
                            equation.last_equ.f_result := equation.f_result;
                         end if;
                      when cFIND =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing cFIND with parameter = '" & wide_character'Val(integer(param1)) & "'"); 
                         equation.f_result := Long_Float(
                            Find(value => wide_character'Val(integer(param1))));
                         if equation.last_equ /= null and then
@@ -884,7 +835,6 @@ package body Macro_Interpreter is
                            equation.last_equ.f_result := equation.f_result;
                         end if;
                      when cWIDTH =>
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing cWIDTH"); 
                         equation.f_result := 
                             Width(value=> wide_character'Val(integer(param1)));
                         if equation.last_equ /= null and then
@@ -892,12 +842,10 @@ package body Macro_Interpreter is
                            equation.last_equ.operator = none
                         then
                            equation.last_equ.f_result := equation.f_result;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processed cWIDTH and put result (" & Put_Into_String(equation.f_result) & ") into equation.last_equ.f_result.");
                         else
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processed cWIDTH but result (" & Put_Into_String(equation.f_result,3) & ") only exists in equation.f_result.");
+                           null;
                         end if;
                      when cIN => null;  -- do nothing here - already done
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Not reprocessing cIN");
                      when cLength =>
                         if equation.register /= const
                         then
@@ -910,7 +858,7 @@ package body Macro_Interpreter is
                                   Str_Length(of_the_reg=>
                                                   equation.last_equ.register));
                         else  -- error condition - need a register
-                           Error_Log.Debug_Data(at_level => 9, 
+                           Error_Log.Debug_Data(at_level => mloglvl, 
                                 with_details => "Execute: raising exception " &
                                                 "on instruction = 'EQUATION" &
                                                 "' for no register defined.");
@@ -927,7 +875,7 @@ package body Macro_Interpreter is
                            equation.f_result := Long_Float(
                                  Size_Of(the_reg=>equation.last_equ.register));
                         else  -- error condition - need a register
-                           Error_Log.Debug_Data(at_level => 9, 
+                           Error_Log.Debug_Data(at_level => mloglvl, 
                                 with_details => "Execute: raising exception " &
                                                 "on instruction = 'EQUATION" &
                                                 "' for no register defined.");
@@ -945,7 +893,7 @@ package body Macro_Interpreter is
                                   The_First(for_the_reg=>
                                                   equation.last_equ.register);
                         else  -- error condition - need a register
-                           Error_Log.Debug_Data(at_level => 9, 
+                           Error_Log.Debug_Data(at_level => mloglvl, 
                                 with_details => "Execute: raising exception " &
                                                 "on instruction = 'EQUATION" &
                                                 "' for no register defined.");
@@ -963,7 +911,7 @@ package body Macro_Interpreter is
                                   The_Last(for_the_reg=>
                                                   equation.last_equ.register);
                         else  -- error condition - need a register
-                           Error_Log.Debug_Data(at_level => 9, 
+                           Error_Log.Debug_Data(at_level => mloglvl, 
                                 with_details => "Execute: raising exception " &
                                                 "on instruction = 'EQUATION" &
                                                 "' for no register defined.");
@@ -972,33 +920,22 @@ package body Macro_Interpreter is
                   end case;
                when comparison =>
                   -- Execute the equations
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): executing comparison equation where equation.c_lhs = " & equation.c_lhs.eq'Wide_Image & "."); 
                   Execute(equation.c_lhs, at_level + 1);
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): executing comparison equation where equation.r_lhs = " & equation.c_rhs.eq'Wide_Image & ".");
                   Execute(equation.c_rhs, at_level + 1);
                when others =>
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing equation - at When Others => null.");
                   null;
             end case;
             null;
             if equation.equation = null  -- no more to go
             then  -- stash the end point at so we can get to it in reverse
                reverse_start := equation;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): processing equation (forward pass) - set reverse_start to " & reverse_start.eq'Wide_Image & ".");
-            else
-               if equation.equation.last_equ /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Forward processing: moving to next equation part, with its last_equ = '" & equation.equation.last_equ.eq'Wide_Image & "'.");
-               else Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Forward processing: moving to next equation part, with its last_equ = 'NULL'."); end if;
             end if;
             equation := equation.equation;
-            Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Forward processing: moved to next equation part.");
          end loop;
          -- Now process the equation going backwards (reverse pass) in order to
          -- deposit the result at the beginning
-         Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Starting reverse processing.");
          equation := reverse_start;
          while equation /= null loop
-            if equation.register in A..E then Error_Log.Debug_Data(at_level => 8, with_details => "Execute(the_equation): Reverse processing equation " & equation.eq'Wide_Image & " with register '" & register_ids(equation.register) & "' (" & Put_Into_String(registers(equation.register).reg_f) & ") and operator '" & all_maths_operators(equation.operator) & "' with num_type " & equation.num_type'Wide_Image & "."); 
-            else Error_Log.Debug_Data(at_level => 8, with_details => "Execute(the_equation): Reverse processing equation " & equation.eq'Wide_Image & " with register '" & register_ids(equation.register) & "' and operator '" & all_maths_operators(equation.operator) & "' with num_type " & equation.num_type'Wide_Image & "."); end if;
             case equation.eq is
                when mathematical =>
                   if equation.last_equ /= null
@@ -1007,19 +944,16 @@ package body Macro_Interpreter is
                      then
                         case equation.last_equ.eq is
                            when mathematical =>
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation of 'mathematical' with '" & all_maths_operators(equation.last_equ.operator) & "'{equation.last_equ.m_result=" & Put_Into_String(equation.last_equ.m_result,3) & ",equation.m_result=" & Put_Into_String(equation.m_result,3) & "}.");
                               equation.last_equ.m_result := 
                                  Combine(the_value=>equation.last_equ.m_result,
                                          with_value=>equation.m_result,
                                    using_operator=>equation.last_equ.operator);
                            when bracketed    =>
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation of 'mathematical' with '" & all_maths_operators(equation.last_equ.operator) & "'{equation.last_equ.b_result=" & Put_Into_String(equation.last_equ.b_result,3) & ",equation.m_result=" & Put_Into_String(equation.m_result,3) & "}.");
                               equation.last_equ.b_result := 
                                  Combine(the_value=>equation.last_equ.b_result,
                                          with_value=>equation.m_result,
                                    using_operator=>equation.last_equ.operator);
                            when funct        =>
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation of 'mathematical' with '" & all_maths_operators(equation.last_equ.operator) & "'{equation.last_equ.f_result=" & Put_Into_String(equation.last_equ.f_result,3) & ",equation.m_result=" & Put_Into_String(equation.m_result,3) & "}.");
                               equation.last_equ.f_result := 
                                  Combine(the_value=>equation.last_equ.f_result,
                                          with_value=>equation.m_result,
@@ -1027,11 +961,10 @@ package body Macro_Interpreter is
                            when others => null;  -- should never occur
                         end case;
                      else
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing MATHEMATICAL at equation.last_equ = null.");
+                        null;
                      end if;
                   else  -- got to the top, if a register is specified, then
                         -- load the answer into it
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation and got to the top of 'mathematical' with register '" & register_Ids(equation.register) & "' and operator '" & all_maths_operators(equation.operator) & "' and current value of equation.m_result = '" & Put_Into_String(equation.m_result,3) & "'.");
                      if equation.operator = assign -- a common event for top
                      then  -- reach in to grab the result
                         case equation.equation.eq is
@@ -1049,16 +982,12 @@ package body Macro_Interpreter is
                            equation.num_type /= null_type
                         then
                            registers(equation.register).reg_f:= equation.m_result;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing mathematical equation at assign and set register " & register_ids(equation.register) & " to " & Put_Into_String(registers(equation.register).reg_f,2) & " with equation.num_type = " & equation.num_type'Wide_Image & ".");
                         end if;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing mathematical equation at register " & register_ids(equation.register) & " with equation.num_type = " & equation.num_type'Wide_Image & " - with m_result of " & Put_Into_String(equation.m_result, 3) & ".");
                      end if;
                   end if;
                when logical =>
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation of 'logical'.");
                   if equation.last_equ /= null
                   then -- not at the top
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation.last_equ.operator (" & all_maths_operators(equation.last_equ.operator) & ") for equation of 'logical'.");
                      if equation.last_equ.operator in logical_operator
                      then
                         equation.last_equ.l_result := 
@@ -1077,7 +1006,6 @@ package body Macro_Interpreter is
                      end if;
                   else  -- got to the top, if a register is specified, then
                         -- load the answer into it
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation and got to the top of 'logical' with register '" & register_Ids(equation.register) & "' and operator '" & all_maths_operators(equation.operator) & "' and current value of equation.m_result = '" & equation.l_result'Wide_Image & "'.");
                      if equation.operator = assign -- a common event for top
                      then  -- reach in to grab the result
                         case equation.equation.eq is
@@ -1107,7 +1035,6 @@ package body Macro_Interpreter is
                             (equation.equation.num_type = integer_type or
                              equation.equation.num_type = null_type))
                      then  -- previous would be specifying a character position
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation of 'logical' and got a character position of " & register_ids(equation.register) & "(" & Put_Into_String(integer(equation.equation.m_result)) & ")='" & Wide_Element(registers(equation.register).reg_t,integer(equation.equation.m_result)) & "'.");
                         equation.l_pos := 
                              Wide_Element(registers(equation.register).reg_t,
                                           integer(equation.equation.m_result));
@@ -1118,11 +1045,9 @@ package body Macro_Interpreter is
                   then -- not at the top
                      if equation.operator in string_operator
                      then
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing '" & all_maths_operators(equation.operator) & "' for equation of 'TEXTUAL' with equation.t_result = '" & equation.t_result & "' and equation.last_equ.operator = " & all_maths_operators(equation.last_equ.operator) & ".");
                         if equation.last_equ.eq = textual and then
                         Length(equation.t_result) > 0 
                         then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing '" & all_maths_operators(equation.operator) & "' for equation of 'TEXTUAL' with equation.last_equ.t_result= '" & equation.last_equ.t_result & "', equation.t_result = '" & equation.t_result & "' and equation.last_equ.operator = " & all_maths_operators(equation.last_equ.operator) & ".");
                            equation.last_equ.t_result := 
                                  Combine(the_value=> equation.t_result,
                                         with_value=>equation.last_equ.t_result,
@@ -1134,7 +1059,6 @@ package body Macro_Interpreter is
                            reverse_start := equation.last_equ;
                            while reverse_start /= null and then 
                                  reverse_start.eq = funct loop
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing '" & all_maths_operators(equation.operator) & "' for equation of 'TEXTUAL' with equation last f_result= " & Put_Into_String(integer(reverse_start.f_result)) & ", text result = '" & txtres & "' and equation last operator = " & all_maths_operators(reverse_start.operator) & ".");
                               txtres := Combine(the_value=> To_Text(
                                                Wide_Character'Val(integer(
                                                     reverse_start.f_result))),
@@ -1149,19 +1073,16 @@ package body Macro_Interpreter is
                            if reverse_start /= null and then
                               reverse_start.eq = textual
                            then
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing '" & all_maths_operators(equation.operator) & "' for equation of 'TEXTUAL' loading result of '" & txtres & "' into '" & reverse_start.t_result & "'.");
                               reverse_start.t_result:= reverse_start.t_result &
                                                        txtres;
                            elsif reverse_start = null and then
                                  equation.eq = funct  -- which it should!
                            then  -- We are at the top and this is the answer
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing '" & all_maths_operators(equation.operator) & "' for equation of 'TEXTUAL' loading result of '" & txtres & "' into '" & equation.ft_result & "'.");
                               equation.ft_result := txtres;
                            else  -- At the end and didn't assign
                               if reverse_start /= null then txtres2 := To_Text(reverse_start.eq'Wide_Image); 
                               else txtres2 := To_Text("NULL"); end if;
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing '" & all_maths_operators(equation.operator) & "' for equation of 'TEXTUAL' and first position being of  type '" & txtres2 & "' loading result of '" & txtres & "' into NOWHERE!");
-                              Error_Log.Debug_Data(at_level => 9, 
+                              Error_Log.Debug_Data(at_level => mloglvl, 
                                  with_details => "Execute: raising exception" &
                                              " on instruction = 'EQUATION' " &
                                               "for a format error in textual "&
@@ -1172,11 +1093,9 @@ package body Macro_Interpreter is
                         end if;
                      elsif equation.operator = none
                      then
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing this operator '" & all_maths_operators(equation.operator) & "' for equation of 'textual'.");
                         if equation.last_equ.eq = textual and
                               equation.last_equ.operator in string_operator
                         then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing last operator '" & all_maths_operators(equation.last_equ.operator) & "' for equation of 'textual'.");
                            equation.last_equ.t_result := 
                                  Combine(the_value=>equation.t_result,
                                         with_value=>equation.last_equ.t_result,
@@ -1186,7 +1105,6 @@ package body Macro_Interpreter is
                               (equation.last_equ.last_equ /= null and then
                                equation.last_equ.last_equ.eq = textual)
                            then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing last BRACKETED with last operator '" & all_maths_operators(equation.last_equ.operator) & "' for equation of 'textual'.");
                            equation.last_equ.last_equ.t_result := 
                                  Combine(the_value => equation.t_result, 
                                          with_value=>
@@ -1194,14 +1112,13 @@ package body Macro_Interpreter is
                                          using_operator=>
                                                    equation.last_equ.operator);
                         else
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing at 'none' for equation of 'textual' with equation.last_equ.eq = " & equation.last_equ.eq'Wide_Image & " and equation.last_equ.operator = '" & all_maths_operators(equation.last_equ.operator) & "'.");
+                           null;
                         end if;
                      else
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing TEXTUAL at equation.last_equ = null.");
+                        null;
                      end if;
                   else  -- got to the top, if a register is specified, then
                         -- load the answer into it
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation and got to the top of 'textual' with register '" & register_Ids(equation.register) & "' and operator '" & all_maths_operators(equation.operator) & "' and current value of equation.t_result = '" & equation.t_result & "'.");
                      if equation.operator = assign -- a common event for top
                      then  -- reach in to grab the result
                         case equation.equation.eq is
@@ -1226,22 +1143,18 @@ package body Macro_Interpreter is
                            equation.num_type /= null_type
                         then
                            registers(equation.register).reg_t:= equation.t_result;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing textual equation and SET register " & register_ids(equation.register) & " to '" & registers(equation.register).reg_t & "' with equation.num_type = " & equation.num_type'Wide_Image & ".");
                         end if;
                      elsif equation.register = F
                            then  -- get the register contents
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing loading previous point's t_result with register = " & register_ids(equation.register) &  ", setting it to previous value of '" & equation.last_equ.t_result & "' & '" & registers(equation.register).reg_c & "'.");
                         if equation.last_equ = null and 
                            equation.num_type /= null_type
                         then
                            registers(equation.register).reg_c:= 
                                              Wide_Element(equation.t_result,1);
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing textual equation and set register " & register_ids(equation.register) & " to " & registers(equation.register).reg_c & "' with equation.num_type = " & equation.num_type'Wide_Image & ".");
                         end if;
                      end if;
                   end if;
                when Funct =>
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with register = Funct (" & Put_Into_String(equation.f_result,2) & ").");
                   if equation.f_type = cIN
                   then  -- already processed - do nothing
                      null;
@@ -1249,7 +1162,6 @@ package body Macro_Interpreter is
                   then  -- stash the result there
                      case equation.last_equ.eq is
                         when mathematical =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing Funct and loading " & Put_Into_String(equation.f_result, 2) & " into equation.last_equ.m_result (which had " & Put_Into_String(equation.last_equ.m_result, 2) & ").");
                            if equation.last_equ.operator in numeric_operator
                            then  -- calculate the result as specified
                               equation.last_equ.m_result :=
@@ -1260,7 +1172,6 @@ package body Macro_Interpreter is
                               equation.last_equ.m_result := equation.f_result;
                            end if;
                         when bracketed =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing Funct and loading " & Put_Into_String(equation.f_result, 2) & " into equation.last_equ.b_result (which had " & Put_Into_String(equation.last_equ.b_result, 2) & ").");
                            if equation.last_equ.operator in numeric_operator
                            then  -- calculate the result as specified
                               equation.last_equ.b_result :=
@@ -1271,7 +1182,6 @@ package body Macro_Interpreter is
                               equation.last_equ.b_result := equation.f_result;
                            end if;
                         when funct =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing Funct and loading " & Put_Into_String(equation.f_result, 2) & " into equation.last_equ.f_result (which had " & Put_Into_String(equation.last_equ.f_result, 2) & ").");
                            if equation.last_equ.operator in numeric_operator
                            then  -- calculate the result as specified
                               equation.last_equ.f_result :=
@@ -1304,21 +1214,17 @@ package body Macro_Interpreter is
                               equation.last_equ.f_result := equation.f_result;
                            end if;
                         when logical =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing Funct and loading " & Put_Into_String(equation.f_result, 1) & " into equation.last_equ.l_result (which had " & equation.last_equ.l_result'wide_Image & ").");
                            equation.last_equ.l_result :=
                                                     (equation.f_result /= 0.0);
                         when textual =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing Funct and loading the character for " & Put_Into_String(equation.f_result, 1) & " into equation.last_equ.t_result (which had '" & equation.last_equ.t_result & "').");
                            equation.last_equ.t_result := 
                               equation.last_equ.t_result & To_Text(
                                Wide_Character'Val(integer(equation.f_result)));
                         when others =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing Funct and not loading " & Put_Into_String(equation.f_result, 2) & " as equation.last_equ.eq type = " & equation.last_equ.eq'Wide_Image & ".");
                            null;
                      end case;
                   else  -- last_equ = null - at the top, stash result locally
                      -- If a register is specified, load it there
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation and got to the top of 'funct' with register '" & register_Ids(equation.register) & "' and operator '" & all_maths_operators(equation.operator) & "' and current value of equation.f_result = '" & Put_Into_String(equation.f_result,3) & "'.");
                      if equation.operator = assign -- a common event for top
                      then  -- reach in to grab the result
                         case equation.equation.eq is
@@ -1336,38 +1242,29 @@ package body Macro_Interpreter is
                         equation.num_type /= null_type and
                         equation.operator = assign
                      then  -- We can load the value to a register
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing of Funct got to the top with register = '" & register_ids(equation.register) & "'.");
                         case equation.register is
                            when A .. E =>
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing of Funct LOADING register " & register_ids(equation.register) & " which has " & Put_Into_String(registers(equation.register).reg_f,3) & " with " & Put_Into_String(equation.f_result,3) & ".");
                               registers(equation.register).reg_f:= 
                                                              equation.f_result;
                            when F =>
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing of Funct LOADING register " & register_ids(equation.register) & " which has '" & registers(equation.register).reg_c & "' with '" & wide_character'Val(integer(equation.f_result)) & "'.");
                               registers(equation.register).reg_c:= 
                                  wide_character'Val(integer(equation.f_result));
                            when string_register =>
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing of Funct LOADING register " & register_ids(equation.register) & " which has '" & registers(equation.register).reg_t & "' with '" & equation.ft_result & "'.");
                               registers(equation.register).reg_t:= 
                                                             equation.ft_result;
                            when Y =>
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing of Funct LOADING register " & register_ids(equation.register) & " which has " & registers(equation.register).reg_b'Wide_Image & " with " & boolean'Wide_Image(equation.f_result /= 0.0) & ".");
                               registers(equation.register).reg_b:= 
                                                       equation.f_result /= 0.0;
                            when others =>
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing of Funct got to the top with register = others (" & register_ids(equation.register) & ") and didn't load a register.");
                               null;
                         end case;
                      end if;
                   end if;
                when bracketed =>
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing on bracketed with operator '" & all_maths_operators(equation.operator) & "' and register '" & register_ids(equation.register) & "' and equation.b_result = " & Put_Into_String(equation.b_result,3) & ".");
                   if equation.last_equ /= null
                   then  -- Reach in to extract the result
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with operation type equation.last_equ.eq = '" & equation.last_equ.eq'Wide_Image & "' on bracketed, bracketed equation of type '" & equation.b_equation.eq'Wide_Image & "' and equation.last_equ.operator '" & all_maths_operators(equation.last_equ.operator) & "'.");
                      case equation.last_equ.eq is
                         when mathematical => 
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with equation.last_equ.eq operation type " & equation.last_equ.eq'Wide_Image & " and equation.b_equation.eq operation type " & equation.b_equation.eq'Wide_Image & " and has equation.b_equation.m_result = " & Put_Into_String(equation.b_result) & ".");
                            if equation.last_equ.operator in numeric_operator
                            then  -- not near the top, calculate it
                               equation.last_equ.m_result := 
@@ -1396,10 +1293,8 @@ package body Macro_Interpreter is
                                  null;
                            end case;
                         when bracketed =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with equation.last_equ.eq operation type " & equation.last_equ.eq'Wide_Image & " and equation.b_equation.eq operation type " & equation.b_equation.eq'Wide_Image & ".");
                            if equation.last_equ.operator in numeric_operator
                            then
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing '" & all_maths_operators(equation.operator) & "' for equation of 'bracketed' with equation.last_equ.b_result= " & Put_Into_String(equation.last_equ.b_result,3) & ", equation.b_result = " & Put_Into_String(equation.b_result,3) & " and equation.last_equ.operator = '" & all_maths_operators(equation.last_equ.operator) & "'.");
                               equation.last_equ.b_result := 
                                  Combine(the_value=>equation.last_equ.b_result,
                                          with_value=>equation.b_result,
@@ -1407,12 +1302,10 @@ package body Macro_Interpreter is
                            end if;
                            null;
                         when others =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with equation.last_equ.eq operation type Others " & equation.last_equ.eq'Wide_Image & " and equation.b_equation.eq operation type " & equation.b_equation.eq'Wide_Image & " [doing nothing with this].");
                            null;
                      end case;
                   else  -- got to the top, if a register is specified, then
                         -- load the answer into it
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing equation and got to the top of 'bracketed' with register '" & register_Ids(equation.register) & "' and operator '" & all_maths_operators(equation.operator) & "' and current value of equation.b_result = '" & Put_Into_String(equation.b_result,3) & "'.");
                      if equation.operator = assign -- a common event for top
                      then  -- reach in to grab the result
                         case equation.equation.eq is
@@ -1435,54 +1328,49 @@ package body Macro_Interpreter is
                            equation.num_type /= null_type
                         then  -- NB: this situation should never occur
                            registers(equation.register).reg_f:=equation.b_result;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing bracketed equation and set register " & register_ids(equation.register) & " to " & Put_Into_String(registers(equation.register).reg_f,2) & " with equation.num_type = " & equation.num_type'Wide_Image & ".");
                         else
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with equation.last_equ.eq = NULL and equation.b_equation.eq operation type " & equation.b_equation.eq'Wide_Image & ".");
+                           null;
                         end if;
                      else
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with equation.last_equ.eq = NULL and equation.b_equation.eq operation type " & equation.b_equation.eq'Wide_Image & " and b_result of " & Put_Into_String(equation.b_result,3) & ".");
+                        null;
                      end if;
                   end if;
                when comparison =>
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with register = comparison operator '" & all_maths_operators(equation.operator) & "' and register '" & register_ids(equation.register) & "'.");
                   if equation.last_equ /= null
                   then  -- Reach in to extract the result
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with operation on equation.last_equ of type '" & equation.last_equ.eq'Wide_Image & "' on comparison.");
+                     Error_Log.Debug_Data(at_level => 9, 
+                         with_details => "Execute(the_equation): Reverse " & 
+                                         "processing with operation on " &
+                                         "equation.last_equ of type '" & 
+                                         equation.last_equ.eq'Wide_Image & 
+                                         "' on comparison - failed to reach " & 
+                                         "the result.");
                   end if;
                   if equation.c_lhs /= null
                   then  -- Reach in to extract the result
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with operation on equation.c_lhs of type '" & equation.c_lhs.eq'Wide_Image & "' on comparison.");
                      case equation.c_lhs.eq is
                         when mathematical =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when mathematical for equation of 'comparison' with equation.c_lhs.m_result = " & Put_Into_String(equation.c_lhs.m_result,3) & ".");
                            param1 := equation.c_lhs.m_result;
                         when bracketed =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when bracketed for equation of 'comparison'.");
                            if equation.c_lhs.b_equation.eq = mathematical
                            then
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when mathematical for equation of 'comparison' with equation.c_lhs.b_equation.m_result = " & Put_Into_String(equation.c_lhs.b_equation.m_result,3) & ".");
                               param1 := equation.c_lhs.b_equation.m_result;
                            elsif equation.c_lhs.b_equation.eq = funct
                            then
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when funct for equation of 'comparison' with equation.c_lhs.b_equation.f_result = " & Put_Into_String(equation.c_lhs.b_equation.f_result,3) & ".");
                               param1 := equation.c_lhs.b_equation.f_result;
                            else  -- not correctly specified - assume 0
                               param1 := 0.0;
                            end if;
                         when logical =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when GREATER for equation of 'comparison'.");
                            if equation.c_lhs.l_result
                            then param1 := 1.0;
                            else param1 := 0.0;
                            end if;
                         when funct =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when funct for equation of 'comparison'.");
                            param2 := equation.c_lhs.f_result;
                         when none =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when none for equation of 'comparison'.");
                            param1 := 0.0;
                         when others =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when others for equation of 'comparison'.");
                            param1 := 0.0;
                      end case;
                   else
@@ -1490,39 +1378,29 @@ package body Macro_Interpreter is
                   end if;
                   if equation.c_rhs /= null
                   then  -- Reach in to extract the result
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with operation on equation.c_rhs of type '" & equation.c_rhs.eq'Wide_Image & "' on comparison.");
                      case equation.c_rhs.eq is
                         when mathematical =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when mathematical for equation of 'comparison'.");
                            param2 := equation.c_rhs.m_result;
                         when bracketed =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when bracketed for equation of 'comparison'.");
                            if equation.c_rhs.b_equation.eq = mathematical
                            then
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when mathematical for equation of 'comparison' with equation.c_rhs.b_equation.m_result = " & Put_Into_String(equation.c_rhs.b_equation.m_result,3) & ".");
                               param2 := equation.c_rhs.b_equation.m_result;
                            elsif equation.c_rhs.b_equation.eq = funct
                            then
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when funct for equation of 'comparison' with equation.c_rhs.b_equation.f_result = " & Put_Into_String(equation.c_rhs.b_equation.f_result,3) & ".");
                               param2 := equation.c_rhs.b_equation.f_result;
                            else  -- not correctly specified - assume 0
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when others for equation of 'comparison' with equation.c_rhs.b_equation.eq = " & equation.c_rhs.b_equation.eq'Wide_Image & ".");
                               param2 := 0.0;
                            end if;
                         when logical =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when logical for equation of 'comparison'.");
                            if equation.c_rhs.l_result
                            then param2 := 1.0;
                            else param2 := 0.0;
                            end if;
                         when funct =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when funct for equation of 'comparison'.");
                            param2 := equation.c_rhs.f_result;
                         when none =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when none for equation of 'comparison'.");
                            param2 := 0.0;
                         when others =>
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing when others for equation of 'comparison'.");
                            param2 := 0.0;
                      end case;
                   else
@@ -1532,14 +1410,11 @@ package body Macro_Interpreter is
                                Compare(the_value => param1, against => param2, 
                                        using_operator => equation.operator);
                when others =>
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing with register = others (" & register_ids(equation.register) & ").");
                   null;
             end case;
             equation := equation.last_equ;
-            Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Reverse processing and moved to previous equation part.");
          end loop;
          null;
-         Error_Log.Debug_Data(at_level => 9, with_details => "Execute(the_equation): Finished execute at level " & Put_Into_string(at_level) & ".");
       end Execute;
       proc_name  : text;
       proc_param : text;
@@ -1549,7 +1424,6 @@ package body Macro_Interpreter is
       -- Work through the macro instruction set
       Macro_Processing:
       while the_macro /= null loop
-         Error_Log.Debug_Data(at_level => 7, with_details => "Execute: processing command " & the_macro.cmd'Wide_Image & ".");
          case the_macro.cmd is
             when cPROCEDURE =>
                -- load up the parameter into ???
@@ -1557,35 +1431,32 @@ package body Macro_Interpreter is
                proc_name  := the_macro.proc_name;
                if the_macro.proc_body = null
                then  -- no procedure body
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: no procedure body.");
+                  Error_Log.Debug_Data(at_level => 9, 
+                                with_details => "Execute: no procedure body.");
                end if;
                if the_macro.next_command = null
                then
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: no procedure next_command.");
+                  Error_Log.Debug_Data(at_level => 9, 
+                        with_details => "Execute: no procedure next_command.");
                end if;
                -- and execute into the code block
                Execute (the_macro.proc_body, on_registers => registers,
                         loop_exit_triggered => exiting_loop);
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got Procedure with procedure '" & proc_name & "' parameter '" & proc_param & "'.");
                the_macro := the_macro.next_command;
             when cEQUATION =>  -- execute the code block
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got Execute(equation).");
                if not exiting_loop then  -- (don't execute if bailing)
                   Execute(the_equation => the_macro.equation, at_level => 0);
                end if;
                the_macro := the_macro.next_command;
             when cIF =>
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got IF(condtion).");
                -- work out the result of the IF equation
                Execute(the_equation => the_macro.condition, at_level => 0);
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got Condition for IF.");
                -- execute then or else part based on result
                if (the_macro.condition.eq = logical and then 
                                 the_macro.condition.l_result) or else
                   (the_macro.condition.eq = comparison and then 
                                 the_macro.condition.c_result)
                then  -- execute THEN part
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: IF: executing THEN part.");
                   -- First, make sure the ELSIF (if any) doesn't execute
                   if the_macro.else_part /= null and then
                      the_macro.else_part.cmd = cELSIF
@@ -1599,10 +1470,8 @@ package body Macro_Interpreter is
                   -- Now execute the THEN part
                   Execute (the_macro.then_part, on_registers => registers,
                            loop_exit_triggered => exiting_loop);
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: IF: executed THEN part.  Currently the_macro.cmd = " & all_reserved_words(the_macro.cmd) & " and the_macro.next_command.cmd = " & all_reserved_words(the_macro.next_command.cmd) &  ".");
                elsif the_macro.else_part /= null
                then  -- execute ELSE part
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: IF: executing ELSE part.");
                   Execute (the_macro.else_part, on_registers => registers,
                            loop_exit_triggered => exiting_loop);
                   -- If the ELSE part was an ELSIf, then check on the ELSIF's
@@ -1611,7 +1480,6 @@ package body Macro_Interpreter is
                   if the_macro.else_part.cmd = cELSIF and then
                      the_macro.else_part.eif_executed
                   then  -- reset it
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute: IF condition resetting ELSIF's eif_executed flag.");
                      declare
                         macro : code_block := the_macro.else_part;
                      begin
@@ -1621,79 +1489,64 @@ package body Macro_Interpreter is
                               macro.cmd = cELSIF and then
                               macro.eif_executed loop
                            -- check down a level again
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute: IF condition resetting ELSIF's ELSIF's eif_executed flag.");
                            macro.eif_executed := false;
                            macro := macro.eelse_part;
                         end loop;
                      end;
                   end if;
                else  -- IF condition failed and no ELSE part
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: IF condition failed and no ELSE part, setting the_macro to next_command.");
+                  null;
                end if;
                the_macro := the_macro.next_command;  -- moving on
             when cELSIF =>
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got ELSIF(condtion).  Prior command is '" & all_reserved_words(the_macro.last_command.cmd) & "'.");
                -- First, work out where we have come to here from.  If from the
                -- IF statement, then proceed, otherwise, would have come from
                -- the END IF or a previous ELSIF.
                if the_macro.eif_executed
                then  --  just passing through, so return back
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Exiting cELSIF with the_macro.cmd = '" & all_reserved_words(the_macro.cmd) & "' and with the_macro.last_command.cmd = '" & all_reserved_words(the_macro.last_command.cmd) & "'."); 
                   the_macro.eif_executed := false;
                   the_macro := the_macro.parent_if;  -- point to parent/prior
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Exiting cELSIF with the_macro.parent_if.cmd = '" & all_reserved_words(the_macro.cmd) & "' and with the_macro.parent_if.last_command.cmd = '" & all_reserved_words(the_macro.last_command.cmd) & "' and the_macro.parent_if.next_command.cmd = '" & all_reserved_words(the_macro.next_command.cmd) & "'."); 
                   exit Macro_Processing;  -- actually return to the IF block
                else  -- actually at the ELSIF part
                   -- work out the result of the ELSIF equation
                   Execute(the_equation => the_macro.econdition, at_level => 0);
-                  Error_Log.Debug_Data(at_level => 7, with_details => "Execute: Got Condition for ELSIF.");
                   -- execute then or else part based on result
                   if (the_macro.econdition.eq = logical and then 
                                 the_macro.econdition.l_result) or else
                      (the_macro.econdition.eq = comparison and then 
                                 the_macro.econdition.c_result)
                   then  -- execute THEN part
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute: ELSIF: executing THEN part.");
                      the_macro.eif_executed := true;
                      Execute (the_macro.ethen_part, on_registers => registers,
                               loop_exit_triggered => exiting_loop);
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute: ELSIF: executed THEN part.  Currently the_macro.cmd = " & all_reserved_words(the_macro.cmd) & ".");
                   elsif the_macro.eelse_part /= null
                   then  -- execute ELSE part
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute: ELSIF: executing ELSE part.");
                      Execute (the_macro.eelse_part, on_registers => registers,
                               loop_exit_triggered => exiting_loop);
                   end if;
                end if;
                the_macro:= the_macro.next_command; -- go to next statement
             when cELSE =>
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got ELSE.  Prior command is '" & all_reserved_words(the_macro.last_command.cmd) & "'.");
                -- First, work out where we have come to here from.  If from the
                -- IF or ELSIF's else statement, then proceed, otherwise, would
                -- have come from END IF of either the IF or a previous ELSIF.
                if the_macro.else_parent.cmd = cELSIF and then
                   the_macro.else_parent.eif_executed
                then  --  just passing through, so return back
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: ELSE Setting the macro to the parent with the_macro.cmd = '" & all_reserved_words(the_macro.cmd) & "' and with the_macro.else_parent.cmd = '" & all_reserved_words(the_macro.else_parent.cmd) & "', then not executing ELSE part."); 
                   the_macro := the_macro.else_parent;  -- point to parent/prior
                elsif the_macro.else_parent.cmd = cIF and then
                      the_macro.else_parent.if_executed
                then  -- also passing through, so return back
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: ELSE Skipping execution as THEN already executed, with the_macro.cmd = '" & all_reserved_words(the_macro.cmd) & "' and with the_macro.else_parent.cmd = '" & all_reserved_words(the_macro.else_parent.cmd) & "', then not executing ELSE part."); 
                   the_macro.else_parent.if_executed := false;  -- reset first
                   -- the_macro := the_macro.else_parent;  -- point to parent/prior
                else  -- actually at the ELSE part
                   -- execute the ELSE equation
                   Execute (the_macro.else_block, on_registers => registers,
                            loop_exit_triggered => exiting_loop);
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: ELSE: executed ELSE part.  Currently the_macro.cmd = " & all_reserved_words(the_macro.cmd) & ".");
                   -- Pop to parent IF for exit of the if block
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Executed ELSE.  Prior command was '" & all_reserved_words(the_macro.last_command.cmd) & "' and current command is '" & all_reserved_words(the_macro.cmd) & "'.");
-                  if the_macro.next_command /= null and the_macro.next_command.cmd = cEND then Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Executed ELSE.  Next command is '" & all_reserved_words(the_macro.next_command.cmd) & "' with end_type '" & all_reserved_words(the_macro.next_command.end_type) & "'and next command parent is '" & all_reserved_words(the_macro.next_command.parent_block.cmd) & "' and it's next command is '" & all_reserved_words(the_macro.next_command.parent_block.next_command.cmd) & "'."); end if;
                end if;
                the_macro:= the_macro.next_command; -- go to next statement
             when cFOR =>
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got FOR(start .. end).");
                declare
                   the_start,
                   the_end   : integer := 0;
@@ -1710,7 +1563,6 @@ package body Macro_Interpreter is
                   then
                      the_start:= integer(the_macro.f_start.b_result);
                   end if;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got Start Condition (" & Put_Into_String(the_start) & ") for FOR.");
                   Execute(the_equation => the_macro.f_end, at_level => 0);
                   if the_macro.f_end.eq = mathematical
                   then
@@ -1722,12 +1574,10 @@ package body Macro_Interpreter is
                   then
                      the_end := integer(the_macro.f_end.b_result);
                   end if;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got End Condition (" & Put_Into_String(the_end) & ") for FOR.");
                   -- Now run the FOR loop
                   if the_macro.direction = forward
                   then
                      for item in the_start .. the_end loop
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop (fwd): register ('" & register_ids(the_macro.for_reg) & "') = item (" & Put_Into_String(item) & ") start (" & Put_Into_String(the_start) & ") .. end (" & Put_Into_String(the_end) & ").");
                         case the_macro.for_reg is
                            when G | H | S =>
                               registers(the_macro.for_reg).reg_t := 
@@ -1739,20 +1589,8 @@ package body Macro_Interpreter is
                                                       Wide_Character'Val(item);
                            when others => null;
                         end case;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop in forward direction : macro.cmd = " & the_macro.cmd'Wide_Image & ", register " & register_ids(the_macro.for_reg) & " = " & Put_Into_String(item) & ".");
                         Execute (the_macro.for_block, on_registers => registers,
                                  loop_exit_triggered => exiting_loop);
-                        if the_macro.last_command /= null and the_macro.next_command /= null then
-                           if the_macro.last_command.cmd = cEND then
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop in forward direction : stepped into macro.cmd = " & all_reserved_words(the_macro.cmd) & ". which has its next_command = " & all_reserved_words(the_macro.next_command.cmd) & " and its last_command = '" & all_reserved_words(the_macro.last_command.cmd) & "' (" & all_reserved_words(the_macro.last_command.end_type) & ")" & ".");
-                           else
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop in forward direction : stepped into macro.cmd = " & all_reserved_words(the_macro.cmd) & ". which has its next_command = '" & all_reserved_words(the_macro.next_command.cmd) & "' and its last_command = '" & all_reserved_words(the_macro.last_command.cmd) & "'.");
-                           end if;
-                        elsif the_macro.next_command /= null then
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop in forward direction : stepped into macro.cmd = " & all_reserved_words(the_macro.cmd) & ". which has its next_command = '" & all_reserved_words(the_macro.next_command.cmd) & "'.");
-                        else
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop in forward direction : stepped into macro.cmd = " & all_reserved_words(the_macro.cmd) & ".");
-                        end if;
                         if loop_exit_triggered then  -- EXIT has been triggered
                            loop_exit_triggered := false;  -- reset it
                            exit;  -- and quit the loop
@@ -1760,7 +1598,6 @@ package body Macro_Interpreter is
                      end loop;
                   else
                      for item in reverse the_start .. the_end loop
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop (rev): register ('" & register_ids(the_macro.for_reg) & "') = item (" & Put_Into_String(item) & ") start (" & Put_Into_String(the_start) & ") .. end (" & Put_Into_String(the_end) & ").");
                         case the_macro.for_reg is
                            when G | H | S =>
                               registers(the_macro.for_reg).reg_t := 
@@ -1772,7 +1609,6 @@ package body Macro_Interpreter is
                                                       Wide_Character'Val(item);
                            when others => null;
                         end case;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop in reverse direction : macro.cmd = " & the_macro.cmd'Wide_Image & ", register " & register_ids(the_macro.for_reg) & " = " & Put_Into_String(item) & ".");
                         Execute (the_macro.for_block, on_registers => registers,
                                  loop_exit_triggered => exiting_loop);
                         if loop_exit_triggered then  -- EXIT has been triggered
@@ -1786,15 +1622,11 @@ package body Macro_Interpreter is
                   the_macro.next_command.cmd = cEND
                then
                   the_macro := the_macro.next_command.next_command;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop : exiting and heading to END LOOP's next_command.");
                else  -- really an error condition
                   the_macro := the_macro.next_command;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: FOR Loop : exiting and heading to the next_command (which is ?).");
                end if;
             when cLOOP =>
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Got LOOP.");
                loop
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: LOOP Loop  : macro.cmd = " & the_macro.cmd'Wide_Image & ".");
                   Execute (the_macro.loop_block, on_registers => registers,
                                  loop_exit_triggered => exiting_loop);
                   if loop_exit_triggered then  -- EXIT has been triggered
@@ -1806,10 +1638,8 @@ package body Macro_Interpreter is
                   the_macro.next_command.cmd = cEND
                then
                   the_macro := the_macro.next_command.next_command;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: LOOP Loop : exiting and heading to END LOOP's next_command.");
                else  -- really an error condition
                   the_macro := the_macro.next_command;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: LOOP Loop : exiting and heading to the next_command (which is ?).");
                end if;
             when cEXIT =>
                if loop_exit_triggered
@@ -1818,28 +1648,23 @@ package body Macro_Interpreter is
                elsif the_macro.exit_conditn /= null
                then  -- see if the condition is met
                   Execute(the_equation => the_macro.exit_conditn, at_level=>0);
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: EXIT - executed exit_conditn."); 
                   if (the_macro.exit_conditn.eq = logical and then 
                                 the_macro.exit_conditn.l_result) or else
                   (the_macro.exit_conditn.eq = comparison and then 
                                 the_macro.exit_conditn.c_result)
                   then  -- condition met, so execute EXIT part
                      loop_exit_triggered := true;
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute: EXIT - set exit_is_set and the_macro.exit_parent = '" & all_reserved_words(the_macro.exit_parent.cmd) & "' as exit condition is met."); 
                      the_macro := the_macro.exit_parent;
                   else  -- condition not met, so do nothing other than continue
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Execute: EXIT - executed exit_conditn with result = exit condition is NOT met."); 
                      the_macro := the_macro.next_command;
                   end if;
                else  -- this is an unconditional exit
                   loop_exit_triggered := true;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: EXIT - set exit_is_set and the_macro.exit_parent = '" & all_reserved_words(the_macro.exit_parent.cmd) & "'.");
                   the_macro := the_macro.exit_parent;
                end if;
             when cEND =>
                -- Return (i.e. pop back up) the macro to the calling parent
                -- (Procedure/if/For) by exiting this loop and then returning
-               Error_Log.Debug_Data(at_level => 9, with_details => "Execute: END - the_macro (" & all_reserved_words(the_macro.cmd) & ") is exiting the loop and therefore exiting Execute(the_macro)."); 
                exit Macro_Processing;
             when cINSERT =>
                declare
@@ -1882,7 +1707,7 @@ package body Macro_Interpreter is
                      when F =>
                         the_value := registers(the_macro.i_val).reg_c;
                      when others => -- error condition
-                        Error_Log.Debug_Data(at_level => 9, 
+                        Error_Log.Debug_Data(at_level => mloglvl, 
                                 with_details => "Execute: raising exception " &
                                                 "on instruction = 'EQUATION" &
                                                 "' for bad INSERT format.");
@@ -1890,7 +1715,6 @@ package body Macro_Interpreter is
                   end case;
                   -- Effect the Insert operation
                   the_str(1) := the_value;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: INSERT - inserting '" & the_str & "' into Register '" & register_IDs(the_macro.i_reg) & "' ('" & registers(the_macro.i_reg).reg_t & "') at position " & Put_Into_String(reg_pos) & ".");
                   if reg_pos = (Length(registers(the_macro.i_reg).reg_t) + 1)
                   then
                      Append(the_str, to => registers(the_macro.i_reg).reg_t);
@@ -1899,7 +1723,7 @@ package body Macro_Interpreter is
                   end if;
                   exception
                      when others =>
-                        Error_Log.Debug_Data(at_level => 9, 
+                        Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Execute: raising exception on " &
                                              "instruction = 'EQUATION' for " &
                                               "a format error in INSERT.");
@@ -1950,14 +1774,13 @@ package body Macro_Interpreter is
                      when F =>
                         the_value := To_Text(registers(the_macro.r_val).reg_c);
                      when others => -- error condition
-                        Error_Log.Debug_Data(at_level => 9, 
+                        Error_Log.Debug_Data(at_level => mloglvl, 
                                 with_details => "Execute: raising exception " &
                                                 "on instruction = 'EQUATION" &
                                                 "' for bad REPLACE format.");
                         raise BAD_MACRO_CODE;
                   end case;
                   -- Effect the Replace operation
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: REPLACE - replacing '" & the_value & "' into Register '" & register_IDs(the_macro.r_reg) & "' ('" & registers(the_macro.r_reg).reg_t & "') at position " & Put_Into_String(reg_pos) & ".");
                   if reg_pos > 1 then
                      pre := Sub_String(registers(the_macro.r_reg).reg_t, 1, 
                                        reg_pos - 1);
@@ -1969,7 +1792,7 @@ package body Macro_Interpreter is
                   registers(the_macro.r_reg).reg_t := pre & the_value & post;
                   exception
                      when others =>
-                        Error_Log.Debug_Data(at_level => 9, 
+                        Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Execute: raising exception on " &
                                              "instruction = 'EQUATION' for " &
                                              "a format error in REPLACE.");
@@ -1990,12 +1813,10 @@ package body Macro_Interpreter is
                      reg_pos := integer(the_macro.d_position.f_result);
                   end if;
                   -- Effect the Delete operation
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: DELETE - deleting '" & Wide_Element(registers(the_macro.d_reg).reg_t, reg_pos) & "' from the Register '" & register_IDs(the_macro.d_reg) & "' ('" & registers(the_macro.d_reg).reg_t & "') at position " & Put_Into_String(reg_pos) & ".");
                   Delete(registers(the_macro.d_reg).reg_t, reg_pos, 1);
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Execute: DELETE - deleted from the Register '" & register_IDs(the_macro.d_reg) & "' ('" & registers(the_macro.d_reg).reg_t & "') at position " & Put_Into_String(reg_pos) & ".");
                   exception
                      when others =>
-                        Error_Log.Debug_Data(at_level => 9, 
+                        Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Execute: raising exception on " &
                                              "instruction = 'EQUATION' for " &
                                              "a format error in DELETE.");
@@ -2039,22 +1860,7 @@ package body Macro_Interpreter is
             when others =>
                the_macro := the_macro.next_command;
          end case;
-         if the_macro /= null then
-            Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Next Cmd=" & the_macro.cmd'Wide_Image & ", H='" & registers(H).reg_t & "',S='" & registers(S).reg_t & "',A=" & Put_Into_String(registers(A).reg_f,2) & ",B=" & Put_Into_String(registers(B).reg_f,2) & ",C=" & Put_Into_String(registers(C).reg_f,2) & ",D=" &  Put_Into_String(registers(D).reg_f,2) & ",E=" & Put_Into_String(registers(E).reg_f,2) & ",F='" & registers(F).reg_c & "',G='" & registers(G).reg_t & "',Y=" & registers(Y).reg_b'Wide_Image & ".");
-         else
-            Error_Log.Debug_Data(at_level => 9, with_details => "Execute: No further commands, H='" & registers(H).reg_t & "',S='" & registers(S).reg_t & "',A=" & Put_Into_String(registers(A).reg_f,2) & ",B=" & Put_Into_String(registers(B).reg_f,2) & ",C=" & Put_Into_String(registers(C).reg_f,2) & ",D=" &  Put_Into_String(registers(D).reg_f,2) & ",E=" & Put_Into_String(registers(E).reg_f,2) & ",F='" & registers(F).reg_c & "',G='" & registers(G).reg_t & "',X=" & "',Y=" & registers(Y).reg_b'Wide_Image & ".");
-         end if;
       end loop Macro_Processing;
-      if the_macro /= null then
-         Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Exiting Execute with Next Cmd=" & the_macro.cmd'Wide_Image & ".");
-      else
-         Error_Log.Debug_Data(at_level => 9, with_details => "Execute: Exiting Execute with No further commands.");
-      end if;
-      exception
-         when BAD_MACRO_CODE =>  -- display the error and stop macro execution
-            Error_Log.Put(the_error => 47,
-                          error_intro =>  "Code_Interpreter Execute error", 
-                          error_message=> "Bad code in Macro found during execution");
    end Execute;
 
    procedure Execute (the_macro_Number : in natural) is
@@ -2072,15 +1878,18 @@ package body Macro_Interpreter is
       exiting_loop: boolean := false;
    begin  -- Execute (the main execute procedure)
       Error_Log.Debug_Data(at_level => 6, 
-                           with_details => "Execute: Start" & ".  Macro number = " & Put_Into_String(the_macro_Number) & ".");
-      -- First, load or otherwise initialise the registers;
-      -- Initialise(the_registers => registers);
-      -- Now execute the macro
+                           with_details => "Execute: Start.");
+      -- First, execute the macro
       Execute (the_macro_code => macro, on_registers => the_registers,
                loop_exit_triggered => exiting_loop);
-      -- Finally, load the S register back
+      -- Now the work is done, ready to load register(s) back
       Error_Log.Debug_Data(at_level => 7, 
-                           with_details => "Execute: Finished" & ".  Loaded S register with '" & the_registers(S).reg_t & "'.");
+                           with_details => "Execute: Finished.");
+      exception
+         when BAD_MACRO_CODE =>  -- display the error and stop macro execution
+            Error_Log.Put(the_error => 47,
+                          error_intro =>  "Code_Interpreter Execute error", 
+                          error_message=> "Bad code in Macro found during execution");
    end Execute;
 
 
@@ -2292,10 +2101,7 @@ package body Macro_Interpreter is
                         (Wide_Element(in_string, posn+operator_len) /= ' ' and
                          Wide_Element(in_string, posn+operator_len) /= '(')
                      then  -- not a space or ( following, so not an operator
-                        -- Error_Log.Debug_Data(at_level => 9, with_details => "Operator_Position: resetting the operator '" & all_maths_operators(operator) & "' to 'none' for string '" & in_string & "'.");
                         operator := none;
-                     -- else
-                        -- Error_Log.Debug_Data(at_level => 9, with_details => "Operator_Position: resetting the operator '" & all_maths_operators(operator) & "' is okay for string '" & in_string & "'.");
                      end if;
                   end;
                end if;
@@ -2313,7 +2119,7 @@ package body Macro_Interpreter is
          return result;
          exception
             when Constraint_Error =>  -- unmatched close brackets
-               Error_Log.Debug_Data(at_level => 9, 
+               Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Load_Macro: raising exception " &
                                              "on instruction = 'EQUATION" &
                                              "' for unmatched brackets in '" &
@@ -2379,7 +2185,6 @@ package body Macro_Interpreter is
          passed_eq : boolean := treat_assignment_as_done;
                      -- have we passed the assignment (equals) operation?
       begin
-         Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: loading '" & using_parameter & "' into register '" & register_ids(into_register) & "', of type '" & of_type'Wide_Image & "'.");
          -- work through each component of the operators
          loop
             if Operator_Position(in_string => parameter) > 0
@@ -2395,7 +2200,6 @@ package body Macro_Interpreter is
                operator := none;
             end if;
             parameter := Trim(parameter);
-            Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: L.H.S. = '" & lhs & "', parameter (R.H.S) = '" & parameter & "' and operator = '" & all_maths_operators(operator) & "'.");
             -- Sort out the operation type on this equation
             case operator is
                when assign              => eq_format := of_type;
@@ -2455,15 +2259,12 @@ package body Macro_Interpreter is
             if the_eqn = null
             then  -- nothing specified yet
                the_eqn := new equation_type(eq_format);
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: created new the_eqn.eq format = '" & eq_format'Wide_Image & "' and operator = '" & all_maths_operators(operator) & "' and R.H.S. = '" & parameter & "'.");
             else  -- part way through an equation creation
                the_eqn.equation := new equation_type(eq_format);
                the_eqn.equation.last_equ := the_eqn;
                the_eqn := the_eqn.equation;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: created the_eqn.equation with the_eqn.equation.eq format = '" & eq_format'Wide_Image & "' and operator = '" & all_maths_operators(operator) & "' and R.H.S. = '" & parameter & "', with its parent being '" & the_eqn.last_equ.eq'Wide_Image & "'.");
             end if;
             the_eqn.operator := operator;
-            Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: the_eqn.eq format = '" & eq_format'Wide_Image & "' and operator = '" & all_maths_operators(operator) & "' and R.H.S. = '" & parameter & "'.");
             -- Work out if the L.H.S. is a register
             if (Length(lhs) = 1 or else 
                 (Length(lhs) > 1 and then Wide_Element(lhs,2)='(') or else
@@ -2484,7 +2285,6 @@ package body Macro_Interpreter is
                                                     of_type => mathematical,
                                                treat_assignment_as_done=>true);
                   the_eqn.reg_parm.num_type := null_type;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Loaded bracketed parameter L.H.S. of register " & register_ids(the_eqn.register) & " of type " & the_eqn.eq'Wide_Image & " for parameter '" & param & "' as a sub-equation (against a register of const and of_type " & the_eqn.reg_parm.eq'Wide_Image & " with operator '" & all_maths_operators(the_eqn.operator) & "'.");
                elsif (Length(lhs) >1 and then Wide_Element(lhs,2)=''') and then
                      (Pos(all_attributes(cLength), Upper_Case(lhs)) = 2 or
                       Pos(all_attributes(cSize), Upper_Case(lhs)) = 2 or
@@ -2520,9 +2320,6 @@ package body Macro_Interpreter is
                   then
                      the_eqn.f_type:= cLast;
                   end if;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Attribute function of register " & register_ids(the_eqn.register) & all_attributes(the_eqn.f_type) & " with operator '" & all_maths_operators(the_eqn.operator) & "'.");
-               else
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: register " & register_ids(the_eqn.register) & " specified with operator '" & all_maths_operators(the_eqn.operator) & "' of type '" & eq_format'Wide_Image & "'.");
                end if;
                -- Check if this is really the IN function
                if operator = range_condition
@@ -2535,7 +2332,6 @@ package body Macro_Interpreter is
                   -- Because we are cecking a register, reach in to link it
                   the_eqn.equation.last_equ := the_eqn;
                   Clear(parameter);  -- as it is now used up
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: built sub-equation for range condition '" & all_maths_operators(operator) & "' with  register = " & register_ids(the_eqn.register) & " and R.H.S = '" & parameter & "' and is of type '" & eq_format'Wide_Image & "'.");
                elsif operator in comparison_operator and
                   operator /= range_condition and the_eqn.last_equ = null
                then  -- comparison operation with L.H.S. being a register
@@ -2551,12 +2347,10 @@ package body Macro_Interpreter is
                                                of_type => mathematical,
                                                treat_assignment_as_done=>true);
                   Clear(parameter);  -- since we loaded it
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: built '" & all_maths_operators(the_eqn.operator) & "' between  L.H.S. register = " & register_ids(the_eqn.c_lhs.register) & " and R.H.S = '" & parameter & "' and is of type '" & eq_format'Wide_Image & "'.");
                end if;
             elsif Length(lhs) = 0 and operator = assign
             then  -- at the start, so assign to the specified register
                the_eqn.register := into_register;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Building a sub-equation upon the operator '" & all_maths_operators(the_eqn.operator) & "' whith  register = " & register_ids(the_eqn.register) & " and L.H.S. = '" & lhs  & "' and R.H.S = '" & parameter & "' and is of type '" & eq_format'Wide_Image & "'.");
                the_eqn.equation := Build_Equation(using_parameter=>parameter,
                                                 into_register => const, 
                                                 of_type => of_type,
@@ -2587,7 +2381,6 @@ package body Macro_Interpreter is
                the_eqn.operator := operator;
                the_eqn.f_type:= Reserved_Word_From_Text(for_word=>lhs,
                                                        or_parameter=>Clear);
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Function (" & all_reserved_words(the_eqn.f_type) & ") of register '" & register_ids(the_eqn.register) & "' with operator '" & all_maths_operators(the_eqn.operator) & "'.");
                -- Delete out the reserved word
                Delete(lhs, 1, Length(all_reserved_words(the_eqn.f_type)));
                -- Get the parameters (comma separated) within the function's
@@ -2616,7 +2409,6 @@ package body Macro_Interpreter is
                the_eqn.register := into_register;
                the_eqn.operator := operator;
                the_eqn.f_type:= cIN;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Function (" & all_reserved_words(the_eqn.f_type) & ") of register '" & register_ids(the_eqn.register) & "' with operator '" & all_maths_operators(the_eqn.operator) & "'.");
                -- Delete out the reserved word
                Delete(parameter, 1, 
                       Length(all_reserved_words(the_eqn.f_type))+1);
@@ -2627,7 +2419,6 @@ package body Macro_Interpreter is
                   Delete(parameter, Length(parameter), 1);  -- ')'
                   Delete(parameter, 1, 1);                  -- '('
                end if;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Function (" & all_reserved_words(the_eqn.f_type) & ") with parameter '" & parameter & "'.");
                lhs := Trim(Sub_String(parameter, 1, 
                                  Operator_Position(in_string => parameter)-1));
                Delete(parameter, 1, Operator_Position(in_string=>parameter)-1);
@@ -2643,7 +2434,7 @@ package body Macro_Interpreter is
                                                treat_assignment_as_done=>true);
                Clear(parameter);
                if operator /= ellipses then -- error: wrong operator
-                  Error_Log.Debug_Data(at_level => 9, 
+                  Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Load_Macro: raising exception " &
                                              "on instruction = 'EQUATION" &
                                              "' for incorrect operator (" &
@@ -2651,14 +2442,12 @@ package body Macro_Interpreter is
                                              ") for function 'IN'.");
                   raise BAD_MACRO_CODE;
                end if;
-            elsif Length(lhs) >= 3 and then Locate(''', within => lhs) = 1-- and then 
-                  -- Wide_Element(lhs, 3) = '''
+            elsif Length(lhs) >= 3 and then Locate(''', within => lhs) = 1
             then  -- it is a quoted character - assume mathematical
                the_eqn.operator := operator;
                the_eqn.num_type := character_type;
                the_eqn.m_const := 
                            long_float(Wide_Character'Pos(Wide_Element(lhs,2)));
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: quoted character (" & lhs & ") into nummerical representation (" & Put_Into_String(integer(the_eqn.m_const)) & ") of character.");
             elsif Wide_Element(lhs,1)='(' and Wide_Element(lhs,Length(lhs))=')'
             then  -- Bracketed () sub-equation
                Extract(bracketed_parameter => param, from => lhs);
@@ -2667,7 +2456,6 @@ package body Macro_Interpreter is
                if not passed_eq then
                   the_eqn.num_type := integer_type;
                end if;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: going into bracketed (" & param & " with format " & eq_format'Wide_Image & ") into no register(i.e. const) of type eq_format (" & br_format'Wide_Image & ").");
                the_eqn.b_equation := Build_Equation(using_parameter=>param,
                                                    into_register => const, 
                                                    of_type => br_format,
@@ -2675,11 +2463,9 @@ package body Macro_Interpreter is
                if the_eqn.b_equation.num_type = float_type then
                   the_eqn.b_equation.num_type := integer_type;
                end if;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Built bracketed (" & the_eqn.b_equation.eq'Wide_Image & ") into register(" & register_ids(the_eqn.b_equation.register) & ") with operator " & all_maths_operators(the_eqn.b_equation.operator) & " of num type (" & the_eqn.b_equation.num_type'Wide_Image & "). Our (bracketed level) operator = '" & all_maths_operators(the_eqn.operator) & "'.");
             else  -- processing the line
                -- work out what the L.H.S. is (register or number or value)
                -- and assign to the the_eqn
-               Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: ELSE equation of register '" & register_ids(the_eqn.register) & "' of for eq_format = '" & eq_format'Wide_Image & ".");
                case eq_format is 
                   when textual =>
                      the_eqn.t_const := lhs;
@@ -2697,11 +2483,9 @@ package body Macro_Interpreter is
                      if the_eqn.register = const
                      then  -- it isn't a register, so it's a number
                         the_eqn.m_const := Get_Long_Float_From_String(lhs);
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Converted string '" & lhs & "' into " & Put_Into_String(the_eqn.m_const,3) & " .");
                      end if;
                      if Length(parameter) > 0
                      then  -- more of the equation to go
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Getting the equation for = '" & parameter & "' for register '" & register_ids(into_register) & "' of type '" & eq_format'Wide_Image & "'.");
                         the_eqn.equation := 
                                   Build_Equation(using_parameter=>parameter,
                                                 into_register => into_register, 
@@ -2714,11 +2498,9 @@ package body Macro_Interpreter is
                      if the_eqn.register = const
                      then  -- it isn't a register, so it's a value
                         the_eqn.l_const := (Upper_Case(lhs) /= Value("FALSE"));
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: the_eqn.l_const = '" & the_eqn.l_const'Wide_Image & " .");
                      end if;
                      if Length(parameter) > 0
                      then  -- more of the equation to go
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Getting the equation for = '" & parameter & "' for register '" & register_ids(into_register) & "' of type '" & eq_format'Wide_Image & "'.");
                         the_eqn.equation := 
                                   Build_Equation(using_parameter=>parameter,
                                                 into_register => into_register, 
@@ -2728,7 +2510,6 @@ package body Macro_Interpreter is
                         Clear(parameter);
                      end if;
                   when others =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Build_Equation: Got eq_format = Others for parameter '" & parameter & "' for register '" & register_ids(into_register) & "' of_type = '" & of_type'Wide_Image & "'.");
                      null;
                end case;
             end if;
@@ -2744,7 +2525,7 @@ package body Macro_Interpreter is
          return  result;
          exception
             when No_Number =>  -- number expected but not found (bad format)
-               Error_Log.Debug_Data(at_level => 9, 
+               Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Load_Macro: raising exception " &
                                              "on instruction = 'EQUATION" &
                                              "' for mal-formed parameters ('" &
@@ -2805,7 +2586,6 @@ package body Macro_Interpreter is
                end if;
                rhs := Trim(Sub_String(rhs, the_position + operator_len, 
                                      Length(rhs)-operator_len-the_position+1));
-               Error_Log.Debug_Data(at_level => 9, with_details => "Bracket: L.H.S. = '" & lhs & "' and R.H.S = '" & rhs & "' with operator of '" & all_maths_operators(operator) & "'.");
                the_position := Operator_Position(in_string => rhs, 
                                                 for_operator => operator);
                if the_position > 0
@@ -2865,7 +2645,6 @@ package body Macro_Interpreter is
                      function_bracket := function_bracket - 1;
                      if function_bracket = 0
                      then  -- decrement function counter
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: Finishing on in_function for result = '" & result & "' and lhs = '" & lhs & "' at '" & current_char & "'.");
                         in_function := in_function - 1;
                         result := result & lhs;
                         Clear(lhs);
@@ -2879,7 +2658,6 @@ package body Macro_Interpreter is
                                         function_set'First .. function_set'Last
                then  -- Just loaded a reserved word into result
                   -- count it like a bracket
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: Starting on in_function for result = '" & result & "' and lhs = '" & lhs & "' at '" & current_char & "'.");
                   in_function := in_function + 1;
                   function_bracket := 0;
                   Clear(word);
@@ -2902,7 +2680,6 @@ package body Macro_Interpreter is
                   else  -- process as per normal for restarting tracking
                      Clear(lhs);
                   end if;
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: opening and closing bracket were false, on result '" & result & "' and lhs = '" & lhs & "' at '" & current_char & "', set opening_bracket = true and cleared lhs.");
                elsif opening_bracket and 
                      (current_char = '+' or current_char = '-')
                then  -- At an operator, so restart tracking
@@ -2912,7 +2689,6 @@ package body Macro_Interpreter is
                elsif opening_bracket and in_function = 0 and
                      (current_char = multiply_ch or current_char = divide_ch)
                then  -- got to either multiply or divide
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: opening_bracket was true, setting result (" & result & ") to '" & result & '(' & lhs & "' at '" & current_char & "' and setting closing_bracket = true and opening_bracket = false and clearing lhs (" & lhs & ").");
                   if (Length(result) > 0 and then
                       (Wide_Element(result, Length(result)) = ')' or
                        (Length(result) > 1 and then
@@ -2923,7 +2699,6 @@ package body Macro_Interpreter is
                        (Length(lhs) > 1 and then Wide_Element(lhs, 1) = ')')))
                   then  -- there's a close bracket prior to multiply or divide
                      result := result & lhs;
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: there's a close bracket prior to multiply or divide, on result '" & result & "' and lhs = '" & lhs & "' at '" & current_char & "'.");
                      started_matching := false;
                      find_bracket := 0;
                      for res_pos in reverse 1 .. Length(result) loop
@@ -2935,7 +2710,6 @@ package body Macro_Interpreter is
                         then
                            find_bracket := find_bracket - 1;
                         end if;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: there's a close bracket prior to multiply or divide, res_pos = " & Put_Into_String(res_pos) & " and find_bracket = = " & Put_Into_String(find_bracket) & " with started_matching being " & started_matching'Wide_Image & ".");
                         if started_matching and find_bracket = 0
                         then  -- may be at position ot insert the open bracket
                            if res_pos = 1 or else
@@ -2978,14 +2752,12 @@ package body Macro_Interpreter is
                      closed_bracket := false;  -- reset our status
                   else  -- actually near start of string
                      result := '(' & result;
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: opening and closing bracket were false, set result to '" & result & "' at '" & Wide_Element(for_parameter, char_pos-1) & Wide_Element(for_parameter, char_pos) & "' and set closing_bracket = true.");
                      closing_bracket := true;
                   end if;
                elsif (closing_bracket and in_brackets = 0 and in_function = 0)
                      and then (current_char = ' ' and not
                             (last_char = multiply_ch or last_char = divide_ch))
                then  -- found the other side of the operator's operation
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: bracketing closing bracket on result '" & result & "' at '" & Wide_Element(for_parameter, char_pos-1) & Wide_Element(for_parameter, char_pos) & "'.");
                   closing_bracket := false;
                   Delete(result, Length(result), 1);  -- whip out the space
                   closed_position := Length(result) + 1;
@@ -2996,7 +2768,6 @@ package body Macro_Interpreter is
                then  -- found the other side of the operator's operation
                   closing_bracket := false;
                   Delete(result, Length(result), 1);  -- whip out the operator
-                  Error_Log.Debug_Data(at_level => 9, with_details => "Bracket_Arithmetic: closing_bracket = true and +/-, setting result (" & result & current_char & ") to '" & result & ")" & current_char & "' at '" & current_char & "'.");
                   result:= result & ")" & current_char;
                   closed_bracket := false;
                end if;
@@ -3064,7 +2835,6 @@ package body Macro_Interpreter is
          -- Logical AND, OR take top level precedence
          result:= Bracket(for_the_operator=>logical_and,for_parameter=>result);
          result:= Bracket(for_the_operator=>logical_or, for_parameter=>result);
-         Error_Log.Debug_Data(at_level => 9, with_details => "Set_Order_Of_Precedence: bracketing logical operators results in '" & result & "'.");
          -- Logical NOT also takes top level precedence and is a unary operator
          null;
          -- Comparison is the next level of precedence
@@ -3076,7 +2846,6 @@ package body Macro_Interpreter is
          Remove_Extraneous_Brackets(on => result, at_command => at_command);
          -- Now add the assignment operator (if any) back in)
          result := assignment & result;
-         Error_Log.Debug_Data(at_level => 9, with_details => "Set_Order_Of_Precedence: bracketing multiply and divide operators results in '" & result & "'.");
          return result;
       end Set_Order_Of_Precedence;
       procedure Link(the_block : in out code_block; to : in link_to_positions;
@@ -3121,18 +2890,24 @@ package body Macro_Interpreter is
                   end if;
                end if;
                the_first := false;
-               eqn := eqn & " '" & all_maths_operators(current.operator) & "' {";
+               eqn := eqn & " '"& all_maths_operators(current.operator)& "' {";
                case current.eq is
-                  when mathematical => eqn := eqn & "M[" & Put_Into_String(current.m_const,3) & ']';
-                  when logical => eqn := eqn & "L[" & current.l_const'Wide_Image & ']';
+                  when mathematical => 
+                     eqn := eqn & "M["& Put_Into_String(current.m_const,3)&']';
+                  when logical => 
+                     eqn := eqn & "L[" & current.l_const'Wide_Image & ']';
                   when textual => eqn := eqn & "T[" & current.t_const & ']';
-                  when bracketed => eqn := eqn & '(' & Print(our_equation => current.b_equation) & ')'; 
+                  when bracketed => 
+                     eqn := eqn & '(' & 
+                            Print(our_equation => current.b_equation) & ')'; 
                   when funct => 
                      eqn := eqn & all_reserved_words(current.f_type) & '(' &
-                            Print(current.f_param1) & ',' & Print(current.f_param2) & ')';
+                            Print(current.f_param1) & ',' & 
+                            Print(current.f_param2) & ')';
                   when comparison => 
                      eqn := eqn & "C[" & current.c_const'Wide_Image & "] (" & 
-                            Print(current.c_lhs) & ',' & Print(current.c_rhs) & ')';
+                            Print(current.c_lhs) & ',' & 
+                            Print(current.c_rhs) & ')';
                   when none => null;
                end case;
                eqn := eqn & '}';
@@ -3153,12 +2928,14 @@ package body Macro_Interpreter is
             Clear(reg);
          end if;
          eqn := Print(the_equation, true);
-         Error_Log.Debug_Data(at_level => 9, with_details => "Equation: Register " & reg & eqn & "'.");
+         Error_Log.Debug_Data(at_level => 9, 
+                              with_details => "Equation: Register " & 
+                                              reg & eqn & "'.");
       end Print;
       -----------------------------------------------------
    begin  ---*** Load_Macro ***---
       Error_Log.Debug_Data(at_level => 6, 
-                           with_details => "Load_Macro: Start" & ".  Macro text is '" & from & "'.");
+                           with_details => "Load_Macro: Start.");
       -- Ensure that this is a new macro being loaded
       into := null;
       -- First, make splitting up easier by inserting a command terminator
@@ -3166,7 +2943,8 @@ package body Macro_Interpreter is
       -- Start with IS
       while Pos(SP&all_reserved_words(cIS)&SP, macro, starting_at=>char_pos)>0
       loop
-         char_pos := Pos(SP&all_reserved_words(cIS)&SP, macro, starting_at => char_pos) + 4;
+         char_pos := Pos(SP & all_reserved_words(cIS) & SP, 
+                         macro, starting_at => char_pos) + 4;
          Insert(macro, char_pos, ";");
          char_pos := char_pos + 1;
       end loop;
@@ -3229,7 +3007,6 @@ package body Macro_Interpreter is
                else
                   Clear(parameters);
                end if;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: at instruction number " & Put_Into_String(num) & ", instruction = '" & instruction & "', command = '" & command & "' and parameters = '" & parameters & "'.");
                -- load the command in the appropriate place
                case Reserved_Word_To_Command(for_word=>command, 
                                              or_parameter=> parameters) is
@@ -3239,7 +3016,6 @@ package body Macro_Interpreter is
                      the_block.last_command := current_block;
                      -- the_block := new_block;
                      if into = null then -- at start of the tree
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: At start of tree so setting into at the_block (i.e. the start).");
                         into := the_block;  -- pointer assignment
                      end if;
                         -- Remove the ' IS' from the parameters
@@ -3250,7 +3026,7 @@ package body Macro_Interpreter is
                                Length(parameters) -
                                     Pos(all_reserved_words(cIS),parameters)+1);
                      else  -- bad syntax
-                        Error_Log.Debug_Data(at_level => 9, 
+                        Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Load_Macro: raising exception " &
                                              "on instruction = '" & command &
                                              "' for mal-formed parameters (" &
@@ -3281,21 +3057,15 @@ package body Macro_Interpreter is
                      -- Now point us to our sub-code block
                      current_block := the_block;
                      link_to := proc_body;
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processed PROCEDURE.");
                   when cEQUATION =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EQUATION.");
                      the_block := new cmd_block(cEQUATION);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: EQUATION - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      if current_block.cmd = cPROCEDURE
                      then
                         if current_block.proc_body = null
                         then 
                            current_block.proc_body := the_block;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EQUATION, but previous cPROCEDURE is UNLINKED!!!");
-                        else
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EQUATION and previous cPROCEDURE is linked.");
                         end if;
                      end if;
                      declare
@@ -3313,12 +3083,10 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := next_command;
                   when cINSERT => -- INSERT S({position}) WITH "{string}"|reg
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing INSERT.");
                      -- Set the block data up to point to the INSERT command
                      the_block := new cmd_block(cINSERT);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: INSERT - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      -- Extract the (usually) S (string) register position from
                      -- the parameters
                      the_block.i_reg := To_Register(for_character =>
@@ -3354,12 +3122,10 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := next_command;
                   when cREPLACE => -- REPLACE S({position}) WITH "{string}"|reg
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing REPLACE.");
                      -- Set the block data up to point to the REPLACE command
                      the_block := new cmd_block(cREPLACE);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: REPLACE - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      -- Extract the (usually) S (string) register position from
                      -- the parameters
                      the_block.r_reg := To_Register(for_character =>
@@ -3396,19 +3162,16 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := next_command;
                   when cDELETE =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing DELETE.");
                      -- Set the block data up to point to the DELETE command
                      the_block := new cmd_block(cDELETE);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: DELETE - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      if Wide_Element(parameters,1) = '(' and 
                         Wide_Element(parameters, Length(parameters)) =')'
                      then  -- strip them
                         parameters := 
                                Sub_String(parameters, 2, Length(parameters)-2);
                      end if;
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing DELETE: parameters are '" & parameters & "'.");
                      if (Wide_Element(parameters,2) = ' ' or 
                          Wide_Element(parameters,2) = ',') and then
                         To_Register(for_character =>
@@ -3429,7 +3192,7 @@ package body Macro_Interpreter is
                                     -- into_register => the_block.d_reg,
                                                treat_assignment_as_done=>true);
                      else  -- mal-formed delete parameter or register
-                        Error_Log.Debug_Data(at_level => 9, 
+                        Error_Log.Debug_Data(at_level => mloglvl, 
                                 with_details => "Load_Macro: raising " &
                                                 "exception on instruction = '"&
                                                 command &
@@ -3443,12 +3206,10 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := next_command;
                   when cERROR_LOG =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing ERROR_LOG.");
                      -- Set the block data up to point to the ERROR_LOG command
                      the_block := new cmd_block(cERROR_LOG);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ERROR_LOG - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      -- First, strip out any brackets
                      if Length(parameters) > 2 and then
                         (Wide_Element(parameters, 1) = '(' and
@@ -3472,7 +3233,7 @@ package body Macro_Interpreter is
                                                             for_characters =>
                                                          Length(parameters)-2);
                            else
-                              Error_Log.Debug_Data(at_level => 9, 
+                              Error_Log.Debug_Data(at_level => mloglvl, 
                                  with_details => "Load_Macro: raising " &
                                                 "exception on instruction = '"&
                                                 command &
@@ -3483,7 +3244,7 @@ package body Macro_Interpreter is
                            the_block.e_reg := 
                                        To_Register(Wide_Element(parameters,1));
                            if the_block.e_reg = const then -- error
-                              Error_Log.Debug_Data(at_level => 9, 
+                              Error_Log.Debug_Data(at_level => mloglvl, 
                                  with_details => "Load_Macro: raising "&
                                               "exception on instruction = '" &
                                               command &
@@ -3493,7 +3254,7 @@ package body Macro_Interpreter is
                            end if;
                         end if;
                      else  -- error condition - nothing to log specified
-                        Error_Log.Debug_Data(at_level => 9, 
+                        Error_Log.Debug_Data(at_level => mloglvl, 
                               with_details => "Load_Macro: raising exception "&
                                               "on instruction = '" & command &
                                               "' - nothing specified to log.");
@@ -3503,12 +3264,10 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := next_command;
                   when cIF =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing IF.");
                      -- Set the block data up to point to the IF command
                      the_block := new cmd_block(cIF);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: IF - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      -- Determine and set up the condition from the parameters
                      the_block.condition := 
                         Build_Equation(using_parameter => 
@@ -3524,12 +3283,10 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := then_part;
                   when cELSIF =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing ELSIF.");
                      -- Set the block data up to point to the ELSIF command
                      the_block := new cmd_block(cELSIF);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ELSIF - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      -- Get the parent block pointer from the stack and point
                      -- the parent_if at that, so we know where to return
                      -- to in the event that the condition fails and we need to
@@ -3543,15 +3300,12 @@ package body Macro_Interpreter is
                         parent_data.parent.else_part = null
                      then  -- As parent is IF, set it's else part to this ELSIF
                         parent_data.parent.else_part := the_block;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ELSIF - set parent_if to '" & all_reserved_words(parent_data.parent.cmd) & "' (being the parent_data.parent) and parent_data.parent.else_part to this ELSIF block.");
                      elsif parent_data.parent.cmd = cELSIF and then
                            parent_data.parent.eelse_part = null
                      then  -- As previous is ELSIF, point it to this ELSIF
                         parent_data.parent.eelse_part := the_block;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ELSIF - set parent_if to '" & all_reserved_words(parent_data.parent.cmd) & "' (being the parent_data.parent) and parent_data.parent.eelse_part to this ELSIF block.");
                      else  -- Not an if statement! Push it back on the stack
                         Push(the_item => parent_data, onto => the_stack);
-                        if parent_data.parent /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ELSIF - set parent_if to '" & all_reserved_words(parent_data.parent.cmd) & "' (being the parent_data.parent) but that parent did not get its else or eelse part set."); end if;
                      end if;
                      -- Determine and set up the condition from the parameters
                      the_block.econdition := 
@@ -3567,12 +3321,10 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := ethen_part;
                   when cELSE =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing ELSE.");
                      -- Set the block data up to point to the ELSE command
                      the_block := new cmd_block(cELSE);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ELSE - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      -- Get the parent block pointer from the stack and point
                      -- the next_command at that, so we know where to return
                      -- to.  The parent is the previous IF or ELSIF statement.
@@ -3584,15 +3336,12 @@ package body Macro_Interpreter is
                         parent_data.parent.else_part = null
                      then  -- As parent is IF, set it's else part to this ELSE
                         parent_data.parent.else_part := the_block;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ELSE - set parent_if to '" & all_reserved_words(parent_data.parent.cmd) & "' (being the parent_data.parent) and parent_data.parent.else_part to this ELSE block.");
                      elsif parent_data.parent.cmd = cELSIF and then
                         parent_data.parent.eelse_part = null
                      then  -- As previous is ELSIF, point it to this ELSE
                         parent_data.parent.eelse_part := the_block;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ELSE - set else_parent to '" & all_reserved_words(parent_data.parent.cmd) & "' (being the parent_data.parent) and parent_data.parent.eelse_part to this ELSE block.");
                      else  -- Not an if statement! Push it back on the stack
                         Push(the_item => parent_data, onto => the_stack);
-                        if parent_data.parent /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ELSE - set parent_if to '" & all_reserved_words(parent_data.parent.cmd) & "' (being the parent_data.parent) but that parent did not get its else or eelse part set."); end if;
                      end if;
                      -- Push ourselves onto the stack
                      Push(the_item=> (cELSE,the_block), onto=> the_stack);
@@ -3600,12 +3349,10 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := else_block;
                   when cFOR =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing FOR.");
                      -- Set the block data up to point to the FOR command
                      the_block := new cmd_block(cFOR);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: FOR - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      -- Extract the loop conditions from the paramenters
                      the_block.for_reg := To_Register(for_character =>
                                                    Wide_Element(parameters,1));
@@ -3618,7 +3365,6 @@ package body Macro_Interpreter is
                         Delete(parameters, 1, 3);   -- 'IN '
                      end if;
                      -- Extract the start and finish points
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: ellipses (" & all_maths_operators(ellipses) & ") in '" & parameters & "' at position " & Put_Into_String(Pos(all_maths_operators(ellipses),parameters)) & ".");
                      fleft := Trim(Sub_String(parameters, 1, 
                                              Pos(all_maths_operators(ellipses),
                                               parameters)-1));
@@ -3627,27 +3373,20 @@ package body Macro_Interpreter is
                                               parameters)+3,
                                               Length(parameters)-4));
                      the_block.f_start:=Build_Equation(using_parameter=>fleft);
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: the_block.f_start:=Build_Equation on fleft (" & fleft & ").");
                      the_block.f_end:= Build_Equation(using_parameter=>
                                                   Sub_String(fright, 1, 
                                                              Pos(Value("LOOP"),
                                                                   fright)-2));
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: the_block.f_end:=Build_Equation on fright (" & Sub_String(fright, 1, Pos(Value("LOOP"), fright)-2) & ").");
-                     if the_block.f_end = null then
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: the_block.f_end - got not equation back!");
-                     end if;
                      -- Push ourselves onto the stack
                      Push(the_item=> (cFOR,the_block), onto=> the_stack);
                      -- Now point us to our sub-code block for FOR part
                      current_block := the_block;
                      link_to := for_block;
                   when cLOOP =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing LOOP.");
                      -- Set the block data up to point to the LOOP command
                      the_block := new cmd_block(cLOOP);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: LOOP - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      -- Extract the start and finish points
                      -- Push ourselves onto the stack
                      Push(the_item=> (cLOOP,the_block), onto=> the_stack);
@@ -3655,7 +3394,6 @@ package body Macro_Interpreter is
                      current_block := the_block;
                      link_to := loop_block;
                   when cEXIT =>  -- Exit a For loop or just a LOOP
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT.");
                      -- Find the parent FOR loop in the stack (which may be a
                      -- few IF statements up)
                      declare
@@ -3665,7 +3403,6 @@ package body Macro_Interpreter is
                         Clear(the_stack => for_stack);
                         loop
                            Pop(the_item => parent_data, off_of => the_stack);
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - popped item " & parent_data.command'Wide_Image & ".");
                            Push(the_item => parent_data, onto => for_stack);
                            exit when parent_data.command = cFOR or
                                      parent_data.command = cLOOP or
@@ -3690,48 +3427,35 @@ package body Macro_Interpreter is
                         -- Now, link it all up
                         Link(the_block,to=>link_to,for_current=>current_block);
                         the_block.last_command := current_block;
-                        if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: EXIT - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                         the_block.exit_point:= parent_data.parent;  -- the FOR
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - assigned exit_point to parent_data.parent.");
-                        -- Just in case, ensure the exit_parent is assigned to something
-                        if Depth(of_the_stack=> for_stack) = 0  -- at end?  ---***
+                        -- Just in case, ensure the exit_parent is assigned to
+                        -- something
+                        if Depth(of_the_stack=> for_stack) = 0  -- at end?
                            then  -- this is our parent - save so we pop to it
-                           the_block.exit_parent := parent_data.parent;  ---***
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - initial assignment of exit_parent to parent_data.parent.");
-                        end if;  ---***
+                           the_block.exit_parent := parent_data.parent;
+                        end if;
                         -- And restore the stack
                         Push(the_item=> parent_data, onto=> the_stack);
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - assigned exit_point to parent_data.parent with stack depth to process in reverse of " & Put_Into_String(Depth(of_the_stack=> for_stack)) & ".");
                         while Depth(of_the_stack=> for_stack) > 0 loop
                            Pop(the_item => parent_data, off_of => for_stack);
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - pushing item " & parent_data.command'Wide_Image & ".");
                            Push(the_item=> parent_data, onto=> the_stack);
                            if Depth(of_the_stack=> for_stack) = 0  -- at end?
                            then  -- this is our parent - save so we pop to it
                               the_block.exit_parent := parent_data.parent;
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - final assignment of exit_parent to parent_data.parent.");
                            end if;
                         end loop;
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - processed stack restoration.");
                         Clear(the_stack => for_stack);
-                        Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - cleared out for_stack.");
                      end;
                      -- Finally, point the_block at the next statement
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - Setting current_block to the_block.");
                      current_block := the_block;
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing EXIT - assigning next_command to link_to.");
                      link_to := next_command;
-                     null;
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: now processed EXIT.");
                   when cEND =>
-                     Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing END with command '" & command & "' and parameters '" & parameters & "'.");
                      -- Get the parent block pointer from the stack and point
                      -- the next_command at that, adjusting as necessary other
                      -- relevant pointers.
                      Pop(the_item => parent_data, off_of => the_stack);
                      case parent_data.command is
                         when cIF | cELSIF | cELSE =>-- parameter should be 'IF'
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing END IF (" & all_reserved_words(parent_data.parent.cmd) & ") with current_block.cmd = '" & all_reserved_words(current_block.cmd) & "' (" & current_block.cmd'Wide_Image & ") and link_to = '" & link_to'Wide_Image & "'.");
                            -- Chain through from the previous command to this,
                            -- and from this to the next command (adjusting the
                            -- IF block components along the way).
@@ -3739,11 +3463,10 @@ package body Macro_Interpreter is
                            the_block.end_type := cIF;
                            Link(the_block, to=>link_to, for_current=>current_block);
                            the_block.last_command := current_block;
-                           if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: END (IF) - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                            -- Check the parameter is correct
                            if Upper_Case(parameters) /= all_reserved_words(cIF)
                            then  -- no match so raise an error
-                              Error_Log.Debug_Data(at_level => 9, 
+                              Error_Log.Debug_Data(at_level => mloglvl, 
                                  with_details => "Load_Macro: raising "& 
                                               "exception on instruction = '" & 
                                               command & " " & parameters & 
@@ -3759,7 +3482,6 @@ package body Macro_Interpreter is
                            while parent_data.parent.cmd /= cIF loop
                               -- Point the ELSIF / ELSE at this END (IF) block
                               parent_data.parent.next_command := the_block;
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: END (IF) - set parent_data.parent '" & all_reserved_words(parent_data.parent.cmd) & "' next_command to this block.");
                               -- Now go back to the prior IF/ELSIF/ELSE block
                               if parent_data.parent.cmd = cELSE
                               then  -- go to ELSE's parent
@@ -3775,13 +3497,11 @@ package body Macro_Interpreter is
                            if parent_data.parent.cmd = cIF then
                               -- Point the IF at this END (IF) block for now
                               parent_data.parent.next_command := the_block;
-                              Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: END (IF) - set parent_data.parent '" & all_reserved_words(parent_data.parent.cmd) & "' next_command to this block, with this block's parent being '" & all_reserved_words(the_block.parent_block.cmd) & "'.");
                            end if;
                            -- Point to the next block
                            current_block := the_block;
                            link_to := next_command;
                         when cFOR =>               -- parameter should be 'FOR'
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing END LOOP (" & all_reserved_words(parent_data.parent.cmd) & ") with current_block.cmd = '" & all_reserved_words(current_block.cmd) & "' and link_to = '" & link_to'Wide_Image & "'.");
                            -- Point the previous block to this end block, make
                            -- sure this end block points to the parent and the 
                            -- parent to the next command so that the parent can
@@ -3791,14 +3511,13 @@ package body Macro_Interpreter is
                            Link(the_block, to=>link_to, for_current=>current_block);
                            the_block.parent_block := parent_data.parent;
                            the_block.last_command := current_block;
-                           if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: END (FOR) - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                            parent_data.parent.next_command := the_block;
                            -- and point to the next block
                            current_block := the_block;
                            link_to := next_command;
                            if Upper_Case(parameters)/=all_reserved_words(cLOOP)
                            then  -- no match so raise an error
-                              Error_Log.Debug_Data(at_level => 9, 
+                              Error_Log.Debug_Data(at_level => mloglvl, 
                                  with_details => "Load_Macro: raising "& 
                                               "exception on instruction = '" & 
                                               command & " " & parameters & 
@@ -3806,9 +3525,7 @@ package body Macro_Interpreter is
                                               "(should be END LOOP).");
                               raise BAD_MACRO_CODE;
                            end if;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processed END LOOP with previous (" & all_reserved_words(the_block.last_command.cmd) & ") with current_block.cmd NOW = '" & all_reserved_words(current_block.cmd) & "' and link_to = '" & link_to'Wide_Image & "' with this block's parent being '" & all_reserved_words(the_block.parent_block.cmd) & "'.");
                         when cLOOP =>             -- parameter should be 'LOOP'
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processing END LOOP (" & all_reserved_words(parent_data.parent.cmd) & ") with current_block.cmd = '" & all_reserved_words(current_block.cmd) & "' and link_to = '" & link_to'Wide_Image & "'.");
                            -- Point the previous block to this end block, make
                            -- sure this end block points to the parent and the 
                            -- parent to the next command so that the parent can
@@ -3818,14 +3535,13 @@ package body Macro_Interpreter is
                            Link(the_block, to=>link_to, for_current=>current_block);
                            the_block.parent_block := parent_data.parent;
                            the_block.last_command := current_block;
-                           if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: END (LOOP) - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                            parent_data.parent.next_command := the_block;
                            -- and point to the next block
                            current_block := the_block;
                            link_to := next_command;
                            if Upper_Case(parameters)/=all_reserved_words(cLOOP)
                            then  -- no match so raise an error
-                              Error_Log.Debug_Data(at_level => 9, 
+                              Error_Log.Debug_Data(at_level => mloglvl, 
                                  with_details => "Load_Macro: raising "& 
                                               "exception on instruction = '" & 
                                               command & " " & parameters & 
@@ -3833,7 +3549,6 @@ package body Macro_Interpreter is
                                               "(should be END LOOP).");
                               raise BAD_MACRO_CODE;
                            end if;
-                           Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: processed END LOOP with previous (" & all_reserved_words(the_block.last_command.cmd) & ") with current_block.cmd NOW = '" & all_reserved_words(current_block.cmd) & "' and link_to = '" & link_to'Wide_Image & "' with this block's parent being '" & all_reserved_words(the_block.parent_block.cmd) & "'.");
                         when cPROCEDURE =>--  this should be the last statement
                            if (Length(parent_data.parent.proc_name)> 0 and then
                                Trim(Upper_Case(parent_data.parent.proc_name))/=
@@ -3841,7 +3556,7 @@ package body Macro_Interpreter is
                                or else (Length(parent_data.parent.proc_name)= 0
                                         and Length(parameters) > 0)
                            then  -- no match so raise an error
-                              Error_Log.Debug_Data(at_level => 9, 
+                              Error_Log.Debug_Data(at_level => mloglvl, 
                                  with_details => "Load_Macro: raising "& 
                                               "exception on instruction = '" & 
                                               command & " " & parameters & 
@@ -3859,11 +3574,10 @@ package body Macro_Interpreter is
                            -- link the procedure back to here for now (it
                            -- should point to the command after this END)
                            parent_data.parent.next_command := the_block;
-                           if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: END (PROCEDURE) - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & " with this block's parent being '" & all_reserved_words(the_block.parent_block.cmd) & "'."); end if;
                            current_block := the_block;
                            link_to := next_command;
                         when others =>     -- actually an error condition
-                           Error_Log.Debug_Data(at_level => 9, 
+                           Error_Log.Debug_Data(at_level => mloglvl, 
                               with_details => "Load_Macro: raising exception "&
                                               "on instruction = '" & command &
                                               "' - incorrect END placement.");
@@ -3874,11 +3588,10 @@ package body Macro_Interpreter is
                      the_block := new cmd_block(cNull);
                      Link(the_block, to=>link_to, for_current=>current_block);
                      the_block.last_command := current_block;
-                     if current_block /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: END (NULL) - last_command = '" & all_reserved_words(current_block.cmd) & "' for this block and linked to this via " & link_to'Wide_Image & "."); end if;
                      current_block := the_block;
                      link_to := next_command;
                   when others => 
-                     Error_Log.Debug_Data(at_level => 9, 
+                     Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Load_Macro: raising exception " & 
                                              "on instruction = '" & command &
                                              "'.");
@@ -3887,7 +3600,7 @@ package body Macro_Interpreter is
             else
                if num /= instructions'Last
                then -- not last CR character
-                  Error_Log.Debug_Data(at_level => 9, 
+                  Error_Log.Debug_Data(at_level => mloglvl, 
                              with_details => "Load_Macro: raising exception " & 
                                              "on instruction = '" &instruction&
                                              "'.");
@@ -3897,30 +3610,25 @@ package body Macro_Interpreter is
          end loop;
          -- Working backwards, fix up the links for cEXIT, cIF, cFOR and cLOOP
          while current_block /= null loop
-            Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: backwards: current_block is " & current_block.cmd'Wide_Image & ".");
             if current_block.cmd = cEXIT
             then  -- should point to next_command, but was probably blank prior
                current_block.exit_parent :=
                                         current_block.exit_parent.next_command;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: backwards: current_block is " & current_block.cmd'Wide_Image & " with exit_parent = '" & all_reserved_words(current_block.exit_parent.cmd) & "'.");
             elsif current_block.cmd = cIF or current_block.cmd = cFOR
             then  -- should point to block after END, but it didn't exist then
                current_block.next_command := 
                                        current_block.next_command.next_command;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: backwards: current_block is " & current_block.cmd'Wide_Image & " with next_command = '" & all_reserved_words(current_block.next_command.cmd) & "'.");
             elsif current_block.cmd = cIF or current_block.cmd = cLOOP
             then  -- should point to block after END, but it didn't exist then
                current_block.next_command := 
                                        current_block.next_command.next_command;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: backwards: current_block is " & current_block.cmd'Wide_Image & " with next_command = '" & all_reserved_words(current_block.next_command.cmd) & "'.");
             elsif current_block.cmd = cPROCEDURE
             then  -- should point to the next statement, if any (may be NULL)
                current_block.next_command := 
                                        current_block.next_command.next_command;
-               Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: backwards: current_block is " & current_block.cmd'Wide_Image & ".");
-               if current_block.next_command /= null then Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: backwards: The current_block '" & current_block.cmd'Wide_Image & "' next_command now points to '" & all_reserved_words(current_block.next_command.cmd) & "'."); 
-               else Error_Log.Debug_Data(at_level => 9, with_details => "Load_Macro: backwards: The current_block '" & current_block.cmd'Wide_Image & "' next_command now points to 'NULL'."); end if;
-            elsif current_block.cmd = cEQUATION then Print(the_equation => current_block.equation);
+            elsif current_block.cmd = cEQUATION and mloglvl > 2
+            then 
+               Print(the_equation => current_block.equation);
             end if;
             current_block := current_block.last_command;
          end loop;
@@ -3929,6 +3637,4 @@ package body Macro_Interpreter is
    
 begin
    null;
-   -- Cell_Writer_Version.Register(revision => "$Revision: v1.0.2$",
-   --                              for_module => "Code_Interpreter");
 end Macro_Interpreter;
