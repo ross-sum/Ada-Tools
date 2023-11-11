@@ -443,7 +443,7 @@ private
    type equation_type(eq : equation_format := mathematical) is record
          register : all_register_names := const;
          reg_parm : equation_access := null;  -- sub-component of reg., if any
-         operator : mathematical_operator;
+         operator : mathematical_operator := none;
          equation : equation_access := null;  -- forward pointer
          last_equ : equation_access := null;  -- backwards pointer
          num_type : number_type := float_type;

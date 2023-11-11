@@ -1419,7 +1419,7 @@ package body Macro_Interpreter is
       proc_name  : text;
       proc_param : text;
    begin  -- Execute (the_macro) [main recursive execute procedure]
-      Error_Log.Debug_Data(at_level => 6, 
+      Error_Log.Debug_Data(at_level => 7, 
                            with_details => "Execute(the_macro): Start.");
       -- Work through the macro instruction set
       Macro_Processing:
@@ -1877,13 +1877,13 @@ package body Macro_Interpreter is
       macro      : code_block := AtM(the_macros,the_macro_number);
       exiting_loop: boolean := false;
    begin  -- Execute (the main execute procedure)
-      Error_Log.Debug_Data(at_level => 6, 
+      Error_Log.Debug_Data(at_level => 7, 
                            with_details => "Execute: Start.");
       -- First, execute the macro
       Execute (the_macro_code => macro, on_registers => the_registers,
                loop_exit_triggered => exiting_loop);
       -- Now the work is done, ready to load register(s) back
-      Error_Log.Debug_Data(at_level => 7, 
+      Error_Log.Debug_Data(at_level => 8, 
                            with_details => "Execute: Finished.");
       exception
          when BAD_MACRO_CODE =>  -- display the error and stop macro execution
