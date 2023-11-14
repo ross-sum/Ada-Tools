@@ -350,6 +350,8 @@ package body Report_Processor is
                         the_params(field_num) := +Value(the_query, 
                                                      Field_Index(field_num-1));
                      else
+                        Error_Log.Debug_Data(at_level=> 6, 
+                                 with_details=>"Run_Queries: Parameter NULL.");
                         the_params(field_num) := Null_Parameter;
                      end if;
                   end loop;
