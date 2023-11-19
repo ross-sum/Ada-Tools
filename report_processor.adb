@@ -290,9 +290,11 @@ package body Report_Processor is
       if Report_ID(for_report_number => report_number) > 0 and then
             Boolean_Value(R_reports, 3) then
          Generate_Graphs(for_report_id => with_id);
+         delay 1.0;  -- Wait just a tick for output to be produced
       end if;
       -- Compose the Report
       Generate_LaTex(for_report_id => with_id);
+      delay 0.5; -- Ensure latex is produced before displaying
       Display_Report(for_report_id => with_id);
    end Run_The_Report;
     
@@ -413,7 +415,7 @@ package body Report_Processor is
                   param_num : positive;
                   the_param : text;
                begin
-                  Delete(field_str, 1, field_pos + 7);
+                  Delete(field_str, 1, field_pos + 6);
                   -- extract the field number
                   param_num := Get_Integer_From_String(field_str);
                   -- extract the parameter
@@ -430,8 +432,8 @@ package body Report_Processor is
                   else
                      the_line := Sub_String(the_line, 1, field_pos - 1) &
                                        the_param &
-                                       Sub_String(the_line, end_pos + 2, 
-                                               Length(the_line) - end_pos - 1);
+                                       Sub_String(the_line, end_pos + 1, 
+                                               Length(the_line) - end_pos);
                   end if;
                end;
             end loop;
