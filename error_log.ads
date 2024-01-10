@@ -56,6 +56,10 @@ package Error_Log is
    procedure Set_Log_File_Name(to : in string; for_log : in out log_file; 
                                with_form : string := "");
       -- Load up the log file path and name for further reference.
+      -- With_form can take the optional parameters:
+      --    WCEM=8 - for Unicode output
+      --    ctrl   - Fix control for UTF-8
+      -- For both, use "WCEM=8,ctrl"
    procedure Set_Log_File_Name(to : in string; with_form : string := "");
       -- using internal log file
 
