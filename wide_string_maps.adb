@@ -2,13 +2,13 @@
 --                                                                   --
 --                   W I D E   S T R I N G   M A P S                 --
 --                                                                   --
---                           $Revision: 1.1 $                       --
+--                           $Revision: 1.1 $                        --
 --                                                                   --
---  Copyright (C) 2004  Hyper Quantum Pty Ltd.                  --
+--  Copyright (C) 2004  Hyper Quantum Pty Ltd.                       --
 --  Written by Ross Summerfield.                                     --
 --                                                                   --
---  This  package provides sophisticated error logging facilities    --
---  to an application.                                               --
+--  This package provides mapping capability from a wide character   --
+--  to a wide unbounded string.                                      --
 --                                                                   --
 --  Version History:                                                 --
 --  $Log$
