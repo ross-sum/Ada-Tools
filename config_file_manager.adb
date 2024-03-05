@@ -76,47 +76,42 @@ package body Config_File_Manager is
    --          comment_str  : text := Clear;
    --       end record;
 
-   function To_Wide_Character(item : in character)
-   return wide_character
+   function To_Wide_Character(item : in character) return wide_character
    renames Ada.Characters.Handling.To_Wide_Character;
 
    function To_String(item : in wide_string;
-   substitute : in character := ' ') return string
+                      substitute : in character := ' ') return string
    renames Ada.Characters.Handling.To_String;
 
    procedure Dispose_Line is new
-   Unchecked_Deallocation(ini_line_dets, ini_line);
+             Unchecked_Deallocation(ini_line_dets, ini_line);
    procedure Dispose_Section is new
-   Unchecked_Deallocation(section_dets, section);
+             Unchecked_Deallocation(section_dets, section);
 
-   procedure Set_General_Section(to : in text;
-   for_file : in out config_file) is
+   procedure Set_General_Section(to : in text; for_file: in out config_file) is
    begin
       for_file.general_name := to;
    end Set_General_Section;
 
-   function General_Section(for_file : in config_file)
-   return text is
+   function General_Section(for_file : in config_file) return text is
    begin
       return for_file.general_name;
    end General_Section;
 
    procedure Set_Extra_Comment_Identifier(to : in text;
-   for_file : in out config_file) is
+                                          for_file : in out config_file) is
    -- Specify an additional string to use to identify the
    -- start of a comment (e.g. "//").
    begin
       for_file.comment_str := to;
    end Set_Extra_Comment_Identifier;
 
-   function Extra_Comment_Identifier(for_file: in config_file)
-   return text is
+   function Extra_Comment_Identifier(for_file: in config_file) return text is
    begin
       return for_file.comment_str;
    end Extra_Comment_Identifier;
 
-   procedure Clear(the_configuration_details: in out config_file)
-   is
+   procedure Clear(the_configuration_details: in out config_file) is
       -- empty out any lists
       procedure Release_Storage(for_line : in out ini_line) is
       begin
@@ -154,7 +149,7 @@ package body Config_File_Manager is
    end Clear;
 
    procedure Load(the_file : in out dStrings.IO.file_type;
-   into_the_configuration_details : in out config_file) is
+                  into_the_configuration_details : in out config_file) is
       -- load the list
       procedure Insert(the_line : text; into: in out ini_line) is
       begin
@@ -231,8 +226,7 @@ package body Config_File_Manager is
             section_ptr.next.name       := section_name;
          end if;
       end Start_New_Section;
-      procedure Terminate_General(for_config : in out config_file)
-      is
+      procedure Terminate_General(for_config : in out config_file) is
          line_ptr    : ini_line := for_config.lines;
       begin
          -- go to the second last (1 before current) line entry
@@ -322,10 +316,9 @@ package body Config_File_Manager is
    end Load;
 
    procedure Load(the_file_with_name : wide_string;
-   into_the_configuration_details : in out config_file) is
-      a_file : file_type;
-      the_config : config_file
-      renames into_the_configuration_details;
+                  into_the_configuration_details : in out config_file) is
+      the_config : config_file renames into_the_configuration_details;
+      a_file : dStrings.IO.file_type renames the_config.file;
    begin
       Open(a_file, mode => in_file,
          name => To_String(the_file_with_name),
@@ -334,10 +327,16 @@ package body Config_File_Manager is
          into_the_configuration_details => the_config);
    end Load;
 
+   procedure Load(into_the_configuration_details : in out config_file) is
+      the_config : config_file renames into_the_configuration_details;
+   begin
+      Load(the_file => the_config.file,
+           into_the_configuration_details => the_config);
+   end Load;
+
    procedure Save(to_the_file : in out dStrings.IO.file_type;
-   with_the_configuration_details : in config_file) is
-      the_config : config_file
-      renames with_the_configuration_details;
+                  with_the_configuration_details : in out config_file) is
+      the_config : config_file renames with_the_configuration_details;
       the_file   : file_type renames to_the_file;
       line_ptr   : ini_line := the_config.lines;
    begin
@@ -350,9 +349,8 @@ package body Config_File_Manager is
    end Save;
 
    procedure Save(to_the_file_with_name : wide_string;
-   with_the_configuration_details :  in out config_file) is
-      the_config : config_file
-      renames with_the_configuration_details;
+                  with_the_configuration_details :  in out config_file) is
+      the_config : config_file renames with_the_configuration_details;
       a_file : file_type renames the_config.file;
    begin
       if Is_Open(a_file) then
@@ -364,9 +362,37 @@ package body Config_File_Manager is
       Save(to_the_file => a_file,
             with_the_configuration_details => the_config);
    end Save;
+   
+   procedure Save(the_configuration_details :  in out config_file) is
+      the_config : config_file renames the_configuration_details;
+      a_file : dstrings.io.file_type renames the_config.file;
+   begin
+      if not Is_Open(a_file) then
+         begin
+            Open(a_file, mode => out_file,
+                 name => Value(the_config.file_name),
+                 form => "WCEM=8");
+            exception
+               when Use_Error =>  -- was actually open
+                  null;  -- do nothing here
+         end;
+      end if;
+      Save(to_the_file => a_file,
+           with_the_configuration_details => the_config);
+   end Save;
+   
+   procedure Close(the_configuration_file : in out config_file) is
+      a_file : file_type renames the_configuration_file.file;
+   begin
+      Close(a_file);
+   end Close;
+   
+   function Is_Config_File_Loaded(for_config: in config_file) return boolean is
+   begin
+      return Length(for_config.file_name) > 0;
+   end Is_Config_File_Loaded;
 
-   function Number_Of_Sections(in_file : in config_file)
-   return natural is
+   function Number_Of_Sections(in_file : in config_file) return natural is
    begin
       return in_file.section_count;
    end Number_Of_Sections;
@@ -589,9 +615,16 @@ package body Config_File_Manager is
 
    function Read_Parameter(from_file : in config_file;
    in_section, with_id : in wide_string) return integer is
+      result : integer := 0;
    begin
-      return Get_Integer_From_String
-         (Read_Parameter(from_file,in_section, with_id, false));
+      result := Get_Integer_From_String
+                      (Read_Parameter(from_file,in_section, with_id, false));
+      return result;
+      exception
+         when Empty_String => 
+            return result;
+         when others =>
+            return result;
    end Read_Parameter;
 
    function Read_Parameter(from_file : in config_file;

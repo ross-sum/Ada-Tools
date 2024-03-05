@@ -60,63 +60,66 @@ package Config_File_Manager is
    type config_file is limited private;
 
    procedure Set_General_Section(to : in text;
-   for_file : in out config_file);
+                                 for_file : in out config_file);
    function General_Section(for_file : in config_file)
    return text;
    -- Default is "GENERAL" if not previously set.
 
    procedure Set_Extra_Comment_Identifier(to : in text;
-   for_file : in out config_file);
+                                          for_file : in out config_file);
    -- Specify an additional string to use to identify the
    -- start of a comment (e.g. "//").
-   function Extra_Comment_Identifier(for_file: in config_file)
-   return text;
+   function Extra_Comment_Identifier(for_file: in config_file) return text;
 
    procedure Clear(the_configuration_details: in out config_file);
    procedure Load(the_file : in out dStrings.IO.file_type;
-   into_the_configuration_details : in out config_file);
+                  into_the_configuration_details : in out config_file);
    procedure Load(the_file_with_name : wide_string;
-   into_the_configuration_details : in out config_file);
+                  into_the_configuration_details : in out config_file);
+   procedure Load(into_the_configuration_details : in out config_file);
    procedure Save(to_the_file : in out dStrings.IO.file_type;
-   with_the_configuration_details : in config_file);
+                  with_the_configuration_details : in out config_file);
    procedure Save(to_the_file_with_name : wide_string;
-   with_the_configuration_details :  in out config_file);
+                  with_the_configuration_details :  in out config_file);
+   procedure Save(the_configuration_details :  in out config_file);
+   procedure Close(the_configuration_file : in out config_file);
+   function Is_Config_File_Loaded(for_config : in config_file) return boolean;
 
-   function Number_Of_Sections(in_file : in config_file)
-   return natural;
+   function Number_Of_Sections(in_file : in config_file) return natural;
    function The_Section(in_file : in config_file;
-   at_number : in positive) return wide_string;
+                        at_number : in positive) return wide_string;
 
    procedure Reset_Line(from_file : in out config_file;
-   to_start_of_section : in wide_string := "");
+                        to_start_of_section : in wide_string := "");
    function End_Of_File(file : in config_file) return boolean;
    procedure Get_Line(from_file : in out config_file;
-   the_line : out text; with_comments : boolean := true;
-   concatenated : boolean := true);
+                      the_line : out text; with_comments : boolean := true;
+                      concatenated : boolean := true);
    procedure Get_Line(from_file : in out config_file;
-   the_line : out wide_string; with_comments : boolean := true);
+                      the_line : out wide_string; 
+                       with_comments : boolean := true);
    procedure Get_Line(from_file : in out config_file;
-   the_line : out wide_string; last : out natural);
+                      the_line : out wide_string; last : out natural);
 
    function Read_Parameter(from_file : in config_file;
-   in_section, with_id : in wide_string;
-   concatenated : boolean := true) return text;
+                           in_section, with_id : in wide_string;
+                           concatenated : boolean := true) return text;
    function Read_Parameter(from_file : in config_file;
-   in_section, with_id : in wide_string) return wide_string;
+                       in_section, with_id: in wide_string) return wide_string;
    function Read_Parameter(from_file : in config_file;
-   in_section, with_id : in wide_string) return integer;
+                           in_section, with_id: in wide_string) return integer;
    function Read_Parameter(from_file : in config_file;
-   in_section, with_id : in wide_string) return boolean;
+                           in_section, with_id: in wide_string) return boolean;
    -- Note: boolean is represented in the file as Yes/No.
 
-   procedure Put(parameter : in text;   into: in out config_file;
-   in_section, with_id : in wide_string);
-   procedure Put(parameter : in wide_string;   
-   into: in out config_file; in_section, with_id : in wide_string);
+   procedure Put(parameter : in text; into: in out config_file;
+                 in_section, with_id : in wide_string);
+   procedure Put(parameter : in wide_string; into: in out config_file; 
+                 in_section, with_id : in wide_string);
    procedure Put(parameter : in integer; into: in out config_file;
-   in_section, with_id : in wide_string);
+                 in_section, with_id : in wide_string);
    procedure Put(parameter : in boolean; into: in out config_file;
-   in_section, with_id : in wide_string);
+                 in_section, with_id : in wide_string);
 
 private
 
