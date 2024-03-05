@@ -1,4 +1,4 @@
- -----------------------------------------------------------------------
+-----------------------------------------------------------------------
 --                                                                   --
 --                           B A S E _ 6 4                           --
 --                                                                   --
@@ -105,35 +105,49 @@ package body Blobs.Base_64 is
          end loop;
          return 0;  -- default if found nothing (never gets here)
       end Lookup_Number;
-      res_length: positive := the_base_64'Length/4*3;
-      result    : blob(1 .. res_length);
-      group     : blob(1..3);
-      four_bits : blob(1..4);
-      the_bit   : Character;
-   begin
-      for input_pos in 1 .. the_base_64'Length / 4 loop
+      function Decode_It(base_64_str : in string) return blob is
+         the_base_64 : string renames base_64_str;
+         res_length: positive := the_base_64'Length/4*3;
+         result    : blob(1 .. res_length);
+         group     : blob(1..3);
+         four_bits : blob(1..4);
+         the_bit   : Character;
+      begin
+         for input_pos in 1 .. the_base_64'Length / 4 loop
          -- Get the first 4 sets of 6 bits
-         for bit_no in 1 .. 4 loop
+            for bit_no in 1 .. 4 loop
             -- First, extract the characer
-            the_bit := the_base_64((input_pos - 1) * 4 + bit_no);
+               the_bit := the_base_64((input_pos - 1) * 4 + bit_no);
             -- then convert into the 6 bit number
-            if the_bit  /= pad then
-               four_bits(bit_no) := Lookup_Number(the_bit);
-            else  -- padding - convert to pad (16#00#)
-               four_bits(bit_no) := 2#0000_0000#;
-               res_length := res_length - 1;  -- shorten the blob
-            end if;
-         end loop;
+               if the_bit  /= pad then
+                  four_bits(bit_no) := Lookup_Number(the_bit);
+               else  -- padding - convert to pad (16#00#)
+                  four_bits(bit_no) := 2#0000_0000#;
+                  res_length := res_length - 1;  -- shorten the blob
+               end if;
+            end loop;
          -- Convert back into the 3 blobs
-         group(1) := four_bits(1) * 2#100# + four_bits(2) / 2#01_0000#;
-         group(2) := four_bits(2) rem 2#01_0000# * 2#01_0000# + four_bits(3) / 2#00_0100#;
-         group(3) := four_bits(3) rem 2#00_0100# * 2#0100_0000# + four_bits(4);
+            group(1) := four_bits(1) * 2#100# + four_bits(2) / 2#01_0000#;
+            group(2) := four_bits(2) rem 2#01_0000# * 2#01_0000# + four_bits(3) / 2#00_0100#;
+            group(3) := four_bits(3) rem 2#00_0100# * 2#0100_0000# + four_bits(4);
          -- then load into the result
-         for byte_pos in 1 .. 3 loop
-            result((input_pos -1)*3 + byte_pos) := group(byte_pos);
+            for byte_pos in 1 .. 3 loop
+               result((input_pos -1)*3 + byte_pos) := group(byte_pos);
+            end loop;
          end loop;
-      end loop;
-      return result(1..res_length);
+         return result(1..res_length);
+      end Decode_It;
+      null_blob : constant blob(1..1) := (1 => byte(16#00#));
+   begin
+      return Decode_It(the_base_64);
+      exception
+         when Constraint_Error =>  -- probably a range check failure
+            if the_base_64'Length = 0
+            then  -- range check failure
+               return null_blob;
+            else  -- something else
+               raise;
+            end if;
    end Decode;
    
    function Decode(the_base_64_text : in string) return string is
@@ -151,7 +165,7 @@ package body Blobs.Base_64 is
    begin
       for i in the_string'First .. the_string'Last loop
          result(i-the_string'First+1) :=
-	                        Byte'Val(Character'Pos(the_string(i)));
+                           Byte'Val(Character'Pos(the_string(i)));
       end loop;
       return result;
    end Cast_String_As_Blob;
