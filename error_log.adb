@@ -208,9 +208,9 @@ package body Error_Log is
                if Is_Control(the_char)
                then  -- a control character - chevron its numerical value
                   case the_char is
-                     when cr | lf => 
+                     when lf => 
                         Append(the_char, to=> result);
-                     when null_ch .. ht | vt | ff | ss .. us  =>
+                     when null_ch .. ht | vt | ff | cr | ss .. us  =>
                         Append(open_chevron & 
                                wide_character'Val(wide_character'Pos(
                                                      the_char)+ctrl_pictures) &
